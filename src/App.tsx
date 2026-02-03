@@ -3,19 +3,30 @@ import { Header } from './components/Header';
 import { TrackingInput } from './components/TrackingInput';
 import { TrackingResult } from './components/TrackingResult';
 import { useTracking } from './hooks/useTracking';
-import { Truck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from './hooks/useAuth';
+import Login from './components/Login';
+import { Truck, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import Feedback from './components/Feedback';
 
 function App() {
+  const { user, loading: authLoading, error: authError, loginWithGoogle, logout } = useAuth();
   const { data, loading, error, trackShipment } = useTracking();
   const [showResult, setShowResult] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // Reset view if error occurs
+  useEffect(() => {
+    if (error) {
+      alert(error); // Simple error handling for now
+      setShowResult(false);
+    }
+  }, [error]);
 
   // Background style
   const backgroundStyle = {
     background: 'radial-gradient(circle at 50% 0%, #2a2a2a 0%, #111111 60%)',
   };
-
-  const [isExiting, setIsExiting] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
 
   const handleSearch = async (trackingNumber: string) => {
     await trackShipment(trackingNumber);
@@ -32,16 +43,30 @@ function App() {
     }, 500); // Match animation duration
   };
 
-  // Reset view if error occurs
-  useEffect(() => {
-    if (error) {
-      alert(error); // Simple error handling for now
-      setShowResult(false);
-    }
-  }, [error]);
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login onLogin={loginWithGoogle} loading={authLoading} error={authError} />;
+  }
+
 
   return (
     <div className="min-h-screen relative overflow-x-hidden font-sans text-gray-900 selection:bg-primary/30" style={backgroundStyle}>
+      {/* Logout Button */}
+      <button
+        onClick={logout}
+        className="fixed top-6 right-6 z-[60] p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-all duration-300 flex items-center gap-2 group"
+        title="Sign Out"
+      >
+        <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        <span className="text-xs font-semibold uppercase tracking-wider">Sign Out</span>
+      </button>
       {/* Dynamic background elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-blue-600/30 rounded-full blur-[120px] mix-blend-screen opacity-50 animate-pulse" />
@@ -159,6 +184,8 @@ function App() {
       <footer className="w-full py-6 text-center text-white/30 text-sm relative z-10">
         &copy; {new Date().getFullYear()} Dynapro Tracking System. All rights reserved.
       </footer>
+
+      {user.email && <Feedback userEmail={user.email} />}
     </div>
   );
 }

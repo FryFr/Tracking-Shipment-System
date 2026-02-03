@@ -12,6 +12,18 @@ service cloud.firestore {
       // Make sure to write security rules for your app before that time, or
       // else all client requests to your database will be denied until you
       // update your rules.
+      // Allow authenticated users to create and update their own session records
+      match /usage_sessions/{sessionId} {
+        allow create: if request.auth != null && request.resource.data.email == request.auth.token.email;
+        allow update: if request.auth != null && resource.data.email == request.auth.token.email;
+      }
+      
+      // Allow authenticated users to submit feedback
+      match /feedback/{feedbackId} {
+        allow create: if request.auth != null && request.resource.data.email == request.auth.token.email;
+      }
+
+      // Keep temporary full access for other documents until March 1st
       allow read, write: if request.time < timestamp.date(2026, 3, 1);
     }
   }
