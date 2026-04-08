@@ -1,0 +1,67 @@
+@startgantt
+title Senior Dev Roadmap: Full Execution in 2.5 Months (Immediate Start)
+printscale weekly zoom 4
+Project starts 2026-02-19
+
+legend top
+  **STRATEGIC JUSTIFICATIONS**
+  * **Why Operations First?** We prioritize KAS Workcenter & Shipment Intercompany to eliminate massive bottlenecks. 
+    Automating these turns 4-hour manual slogs into 2-minute flows, yielding the highest immediate ROI in team bandwidth.
+  * **Why Finance Second?** Financial automation is critical but heavily depends on strict Mexican tax regulations (SAT). 
+    Stabilizing core operations first guarantees clean data flows into CONTPAQi, significantly reducing compliance risks.
+end legend
+
+-- TRACK A: Core Operations (Odoo + HubSpot) --
+[Dev: KAS Workcenter] lasts 7 days
+[QA: KAS Workcenter] starts at [Dev: KAS Workcenter]'s end and lasts 7 days
+note bottom
+  You move to the next task; the Sales team tests KAS.
+end note
+
+[Dev: Shipment Intercompany] starts at [Dev: KAS Workcenter]'s end and lasts 14 days
+[QA: Shipment Intercompany] starts at [Dev: Shipment Intercompany]'s end and lasts 7 days
+
+-- TRACK B: Finance & OCR (Independent) --
+[Dev: IB & OB Reports] starts at [Dev: Shipment Intercompany]'s end and lasts 10 days
+[QA: IB & OB Reports] starts at [Dev: IB & OB Reports]'s end and lasts 7 days
+
+[Dev: CONTPAQi Finance] starts at [Dev: IB & OB Reports]'s end and lasts 14 days
+note bottom
+  On-Premise SQL Server connection and SAT stamping.
+end note
+[QA: CONTPAQi Finance] starts at [Dev: CONTPAQi Finance]'s end and lasts 7 days
+
+-- TRACK C: Business Logic & MKT --
+[Dev: Commission App] starts at [QA: CONTPAQi Finance]'s end and lasts 7 days
+note bottom
+  Next.js Dashboard construction.
+end note
+[QA: Commission App] starts at [Dev: Commission App]'s end and lasts 7 days
+
+[Dev: MKT Mapping & Academy] starts at [Dev: Commission App]'s end and lasts 4 days
+[QA: MKT & Academy] starts at [Dev: MKT Mapping & Academy]'s end and lasts 5 days
+
+-- TRACK D: Internal Portal (Background) --
+[Dev: Internal Portal MVP] starts 2026-02-19 and lasts 42 days
+note bottom
+  Parallel/asynchronous work from Day 1.
+end note
+[QA: Internal Portal] starts at [Dev: Internal Portal MVP]'s end and lasts 14 days
+
+' --- Styles and Colors ---
+[Dev: KAS Workcenter] is colored in #FFCDD2
+[Dev: Shipment Intercompany] is colored in #FFCDD2
+[Dev: IB & OB Reports] is colored in #FFF9C4
+[Dev: CONTPAQi Finance] is colored in #FFF9C4
+[Dev: Commission App] is colored in #E1F5FE
+[Dev: MKT Mapping & Academy] is colored in #F5F5F5
+[Dev: Internal Portal MVP] is colored in #C8E6C9
+
+[QA: KAS Workcenter] is colored in #E0E0E0
+[QA: Shipment Intercompany] is colored in #E0E0E0
+[QA: IB & OB Reports] is colored in #E0E0E0
+[QA: CONTPAQi Finance] is colored in #E0E0E0
+[QA: Commission App] is colored in #E0E0E0
+[QA: MKT & Academy] is colored in #E0E0E0
+[QA: Internal Portal] is colored in #E0E0E0
+@endgantt

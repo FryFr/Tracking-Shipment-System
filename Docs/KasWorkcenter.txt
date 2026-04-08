@@ -1,0 +1,76 @@
+@startuml
+title Flujo KAS Workcenter: Cotización Inteligente y Validación
+autonumber
+skinparam responseMessageBelowArrow true
+
+actor "Cliente" as CLIENT
+actor "KAS (Vendedor)" as KAS
+participant "HubSpot CRM\n(Workcenter)" as HS
+participant "n8n\n(Orquestador)" as N8N
+participant "Odoo ERP\n(Datos Maestros)" as ODOO
+actor "Supply Chain\n(Alexis/Marlen)" as SC
+
+== Fase 1: Solicitud y "Tracking" ==
+CLIENT -> KAS: Envía Correo (Solicitud)
+KAS -> HS: Crea Deal (Ingresa Partes y Site)
+note right of HS: Reemplaza el Excel manual
+
+HS -> N8N: Webhook: Nuevo Requerimiento
+activate N8N
+    N8N -> ODOO: 1. ¿Existe el Cliente?
+    N8N -> ODOO: 2. ¿Se ha cotizado esta parte antes?
+    
+    alt Es Nuevo (Lógica Comisión)
+        N8N -> HS: Etiquetar: [New Opportunity]
+    else Es Recurrente
+        N8N -> HS: Etiquetar: [Renewals]
+    end
+deactivate N8N
+
+== Fase 2: Fijación de Precios (Automation) ==
+KAS -> HS: Click "Consultar Disponibilidad y Precio"
+HS -> N8N: Trigger Consulta
+activate N8N
+    N8N -> ODOO: Get Stock (Todos los almacenes)
+    N8N -> ODOO: Get Sales History (Últimos 12 meses)
+    
+    alt Existe Historial Válido
+        N8N -> HS: Actualizar Deal: \n"Último Precio: $100 (Hace 2 meses)"\n"Stock: 5 unidades"
+    else Sin Precio / Precio Antiguo
+        N8N -> SC: Notificación Slack/Odoo:\n"Fijar Costo/Tiempo para Parte X"
+        SC -> ODOO: Actualizar Costo y Vendor
+        ODOO -> N8N: Webhook: Precio Fijado
+        N8N -> HS: Notificar a KAS: "Precio Listo"
+    end
+deactivate N8N
+
+== Fase 3: Recepción de PO y Validación ==
+CLIENT -> KAS: Envía PO (PDF)
+KAS -> ODOO: Sube PO y valida datos
+note right of KAS
+    Ya no imprime papel.
+    Usa el "Checklist Digital" en Odoo
+end note
+
+group Validación Automática n8n
+    ODOO -> N8N: Webhook: Sale Order Confirmada
+    N8N -> ODOO: Verificar Address Invoice vs PO
+    N8N -> ODOO: Verificar BOM (Componentes completos)
+    
+    alt Todo OK
+        N8N -> ODOO: Crear Nota Interna: "Solicitar Compra Intercompany"
+        N8N -> CLIENT: Email: "Orden Confirmada / ETA Preliminar"
+    else Error Datos
+        N8N -> KAS: Alerta: "Dirección Fiscal no coincide"
+    end
+end
+
+== Fase 4: Logística ==
+ODOO -> N8N: Embarque Enviado (Tracking)
+alt Cuenta Clave
+    N8N -> KAS: Tarea: "Llamar a Cliente e informar Tracking"
+else Cliente Regular
+    N8N -> CLIENT: Email Automático con Tracking
+end
+
+@enduml

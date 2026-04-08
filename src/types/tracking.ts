@@ -28,6 +28,38 @@ export interface Checkpoint {
     tag: string;
 }
 
+export interface OrderReferences {
+    purchase_order?: string;
+    sales_order?: string;
+    order_confirmation?: string;
+}
+
+export interface CarrierInfo {
+    slug: string;
+    name?: string;
+    phone?: string;
+    website?: string;
+}
+
+export interface ShipmentGrouping {
+    order_id?: string;
+    shipment_index?: number;
+    shipment_total?: number;
+}
+
+export interface LogisticsETA {
+    customs_weeks?: number;
+    deconsolidation_weeks?: number;
+    import_weeks?: number;
+    total_additional_weeks?: number;
+    estimated_arrival?: string;
+    port_of_entry?: string;
+    notes?: string;
+    updated_by?: string;
+    updated_at?: string;
+    reviewed?: boolean;
+}
+
 export interface TrackingData {
     tracking_number: string;
     courier_slug: string;
@@ -37,4 +69,9 @@ export interface TrackingData {
     last_update: string;
     eta: string;
     raw_checkpoints: Checkpoint[];
+    order_references?: OrderReferences;
+    carrier_info?: CarrierInfo;
+    shipment_grouping?: ShipmentGrouping;
+    logistics_eta?: LogisticsETA;
+    data_source?: 'api' | 'email';
 }

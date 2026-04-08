@@ -26,7 +26,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, loading, error }) => {
                         Tracking System
                     </h1>
                     <p className="text-gray-400 mb-8">
-                        Please sign in with your <span className="text-blue-400 font-semibold">@dynaproco.com</span> account to access the platform.
+                        Please sign in with your <span className="text-blue-400 font-semibold">@dynaproco.com</span> or <span className="text-blue-400 font-semibold">@dynaproequipment.com</span> account.
                     </p>
 
                     {error && (

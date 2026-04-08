@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "kas_tracking_number": "{{ $json.tracking_number }}",
+    "delivery_status": "{{ $json.hs_delivery_status }}",
+    "kas_lookup_summary": "Tracking: {{ $json.tracking_number }} | {{ $json.courier }} | {{ $json.status }}",
+    "eta": "{{ $json.tracking_eta }}"
+  }
+}

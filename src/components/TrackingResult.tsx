@@ -1,5 +1,5 @@
-import { format, isValid } from 'date-fns';
-import { ArrowLeft, Box, Calendar, MapPin, Truck } from 'lucide-react';
+import { format, isValid, addWeeks } from 'date-fns';
+import { ArrowLeft, Box, Calendar, MapPin, Truck, Shield, ShieldCheck, Pencil, Link2 } from 'lucide-react';
 import type { TrackingData } from '../types/tracking';
 import { Timeline } from './Timeline';
 
@@ -7,7 +7,15 @@ interface Props {
     data: TrackingData;
     onBack?: () => void;
     showBackButton?: boolean;
+    onEditETA?: () => void;
+    onLinkOrder?: () => void;
 }
+
+const formatEta = (dateStr: string | undefined): string => {
+    if (!dateStr) return 'Pending';
+    const date = new Date(dateStr);
+    return isValid(date) ? format(date, 'MMM d, yyyy') : dateStr;
+};
 
 const getStatusColor = (status: string) => {
     const s = status.toLowerCase();
@@ -24,8 +32,20 @@ const getCardGlowStyles = (status: string) => {
     return 'shadow-[0_0_50px_-12px_rgba(37,99,235,0.7)] ring-2 ring-blue-500/50';
 };
 
-export const TrackingResult = ({ data, onBack, showBackButton = true }: Props) => {
+export const TrackingResult = ({ data, onBack, showBackButton = true, onEditETA, onLinkOrder }: Props) => {
     const statusColor = getStatusColor(data.status_detail);
+    const carrierName = data.carrier_info?.name ?? data.courier_slug;
+    const { order_references: refs, shipment_grouping: grouping, logistics_eta: eta } = data;
+
+    // Compute estimated arrival including customs if logistics ETA exists
+    const estimatedArrivalWithCustoms = (() => {
+        if (!eta?.total_additional_weeks || !data.eta) return eta?.estimated_arrival;
+        if (eta.estimated_arrival) return eta.estimated_arrival;
+        const base = new Date(data.eta);
+        if (!isValid(base)) return undefined;
+        return addWeeks(base, eta.total_additional_weeks).toISOString();
+    })();
+
     return (
         <div className="w-full px-4 pb-12">
             {showBackButton && onBack && (
@@ -43,19 +63,62 @@ export const TrackingResult = ({ data, onBack, showBackButton = true }: Props) =
             <div className={`bg-white rounded-3xl overflow-hidden transition-all duration-300 ${getCardGlowStyles(data.status_detail)}`}>
                 {/* Header Section */}
                 <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6 sm:p-8 text-white">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-4">
                         <div>
                             <p className="text-gray-400 text-sm font-medium mb-1">Tracking Number</p>
-                            <h2 className="text-3xl font-bold tracking-tight font-mono">{data.tracking_number}</h2>
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-3xl font-bold tracking-tight font-mono">{data.tracking_number}</h2>
+                                {grouping && grouping.shipment_index != null && grouping.shipment_total != null && (
+                                    <span className="px-2.5 py-1 bg-white/10 rounded-lg text-xs font-semibold border border-white/10">
+                                        Shipment {grouping.shipment_index} of {grouping.shipment_total}
+                                    </span>
+                                )}
+                            </div>
                         </div>
-                        <div className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 ${statusColor}`}>
-                            <span className="relative flex h-2.5 w-2.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
-                            </span>
-                            {data.status_detail}
+                        <div className="flex items-center gap-3">
+                            {eta != null && (
+                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                    eta.reviewed
+                                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                }`}>
+                                    {eta.reviewed ? (
+                                        <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Reviewed</span>
+                                    ) : (
+                                        <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> Pending Review</span>
+                                    )}
+                                </span>
+                            )}
+                            <div className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 ${statusColor}`}>
+                                <span className="relative flex h-2.5 w-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                                </span>
+                                {data.status_detail}
+                            </div>
                         </div>
                     </div>
+
+                    {/* Order References Row */}
+                    {refs && (
+                        <div className="flex flex-wrap gap-2 mb-6">
+                            {refs.sales_order && (
+                                <span className="px-3 py-1 bg-white/10 rounded-lg text-xs font-mono border border-white/10">
+                                    SO: {refs.sales_order}
+                                </span>
+                            )}
+                            {refs.purchase_order && (
+                                <span className="px-3 py-1 bg-white/10 rounded-lg text-xs font-mono border border-white/10">
+                                    PO: {refs.purchase_order}
+                                </span>
+                            )}
+                            {refs.order_confirmation && (
+                                <span className="px-3 py-1 bg-white/10 rounded-lg text-xs font-mono border border-white/10">
+                                    OC: {refs.order_confirmation}
+                                </span>
+                            )}
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-gray-700">
                         <div className="flex items-start gap-3">
@@ -64,7 +127,17 @@ export const TrackingResult = ({ data, onBack, showBackButton = true }: Props) =
                             </div>
                             <div>
                                 <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold">Carrier</p>
-                                <p className="font-medium text-lg capitalize">{data.courier_slug}</p>
+                                <p className="font-medium text-lg capitalize">{carrierName}</p>
+                                {data.data_source === 'email' && (
+                                    <p className="text-amber-400 text-xs mt-1">Data from shipping notification</p>
+                                )}
+                                {data.carrier_info?.phone && (
+                                    <p className="text-gray-400 text-xs">{data.carrier_info.phone}</p>
+                                )}
+                                {data.carrier_info?.website && (
+                                    <a href={data.carrier_info.website} target="_blank" rel="noopener noreferrer"
+                                       className="text-blue-400 text-xs hover:underline">{data.carrier_info.website}</a>
+                                )}
                             </div>
                         </div>
 
@@ -73,14 +146,14 @@ export const TrackingResult = ({ data, onBack, showBackButton = true }: Props) =
                                 <Calendar className="w-5 h-5 text-blue-600" />
                             </div>
                             <div>
-                                <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold">Estimated Delivery</p>
-                                <p className="font-medium text-lg">
-                                    {(() => {
-                                        if (!data.eta) return 'Pending';
-                                        const date = new Date(data.eta);
-                                        return isValid(date) ? format(date, 'MMM d, yyyy') : data.eta;
-                                    })()}
-                                </p>
+                                <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold">Carrier ETA</p>
+                                <p className="font-medium text-lg">{formatEta(data.eta)}</p>
+                                {estimatedArrivalWithCustoms && (
+                                    <div className="mt-1">
+                                        <p className="text-amber-400 text-xs uppercase tracking-wider font-semibold">Est. w/ Customs</p>
+                                        <p className="font-medium text-amber-400">{formatEta(estimatedArrivalWithCustoms)}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -96,6 +169,30 @@ export const TrackingResult = ({ data, onBack, showBackButton = true }: Props) =
                             </div>
                         </div>
                     </div>
+
+                    {/* Action buttons */}
+                    {(onEditETA || onLinkOrder) && (
+                        <div className="mt-4 pt-4 border-t border-gray-700 flex justify-end gap-2">
+                            {onLinkOrder && (
+                                <button
+                                    onClick={onLinkOrder}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm text-gray-300 hover:text-white transition-colors"
+                                >
+                                    <Link2 className="w-4 h-4" />
+                                    Link Order
+                                </button>
+                            )}
+                            {onEditETA && (
+                                <button
+                                    onClick={onEditETA}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm text-gray-300 hover:text-white transition-colors"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                    Edit Logistics ETA
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Timeline Section */}

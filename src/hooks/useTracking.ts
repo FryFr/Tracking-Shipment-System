@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { TrackingData } from '../types/tracking';
 
-
+const WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL
+    || 'https://jssilvam1.app.n8n.cloud/webhook/b1ddc9f9-0229-4fd5-a261-3c8721149abb';
 
 export const useTracking = () => {
     const [data, setData] = useState<TrackingData[] | null>(null);
@@ -25,7 +26,7 @@ export const useTracking = () => {
             // Create an array of promises for concurrent fetching
             const promises = trackingNumbers.map(async (tn) => {
                 try {
-                    const response = await fetch('https://jssilvam1.app.n8n.cloud/webhook/b1ddc9f9-0229-4fd5-a261-3c8721149abb', {
+                    const response = await fetch(WEBHOOK_URL, {
                         method: 'POST',
                         body: JSON.stringify([{ tracking_number: tn }]), // Send as array of 1 object
                         headers: { 'Content-Type': 'application/json' }
@@ -51,8 +52,13 @@ export const useTracking = () => {
             // Wait for all to complete
             const results = await Promise.all(promises);
 
-            // Filter out nulls (failed or empty responses)
-            const validData = results.filter((item): item is TrackingData => item !== null);
+            // Filter out nulls and normalize new fields for backward compat
+            const validData = results
+                .filter((item): item is TrackingData => item !== null)
+                .map((item) => ({
+                    ...item,
+                    carrier_info: item.carrier_info ?? { slug: item.courier_slug },
+                }));
 
             if (validData.length > 0) {
                 setData(validData);

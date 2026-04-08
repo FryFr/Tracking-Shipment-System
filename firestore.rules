@@ -2,29 +2,37 @@ rules_version='2'
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      // Allow authenticated users to create and update their own session records
-      match /usage_sessions/{sessionId} {
-        allow create: if request.auth != null && request.resource.data.email == request.auth.token.email;
-        allow update: if request.auth != null && resource.data.email == request.auth.token.email;
-      }
-      
-      // Allow authenticated users to submit feedback
-      match /feedback/{feedbackId} {
-        allow create: if request.auth != null && request.resource.data.email == request.auth.token.email;
-      }
 
-      // Keep temporary full access for other documents until March 1st
-      allow read, write: if request.time < timestamp.date(2026, 3, 1);
+    // Authenticated Dynapro users can create/update their own session records
+    match /usage_sessions/{sessionId} {
+      allow create: if request.auth != null
+        && request.resource.data.email == request.auth.token.email;
+      allow update: if request.auth != null
+        && resource.data.email == request.auth.token.email;
+      allow read: if request.auth != null;
     }
+
+    // Authenticated users can submit feedback (write-only for privacy)
+    match /feedback/{feedbackId} {
+      allow create: if request.auth != null
+        && request.resource.data.email == request.auth.token.email;
+    }
+
+    // Logistics ETA annotations — authenticated Dynapro users can read/write
+    match /logistics_eta/{trackingNumber} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Order-tracking associations — maps order refs (SO/PO/OC) to tracking numbers
+    match /order_trackings/{orderId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Tracking metadata — stores order references linked from the web app
+    match /tracking_metadata/{trackingNumber} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Deny everything else by default (no wildcard open access)
   }
 }

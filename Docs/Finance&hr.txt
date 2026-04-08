@@ -1,0 +1,76 @@
+@startuml
+title Arquitectura Financiera y HR Unificada: Global vs Local (Enfoque MX)
+autonumber
+skinparam responseMessageBelowArrow true
+skinparam maxmessagesize 150
+
+box "Gestión Global (La Verdad)" #F9F9F9
+    participant "HubSpot\n(Comercial)" as HS
+    participant "n8n Cloud\n(El Cerebro)" as N8N
+end box
+
+box "Operación México (Paralelo)" #FFF9C4
+    participant "Odoo MX\n(Cotización/Órdenes)" as ODOO_MX
+end box
+
+box "Finanzas México (On-Premise)" #E1F5FE
+    queue "n8n Agente\n(Local Worker)" as WORKER
+    participant "CONTPAQi\nComercial (Facturación)" as C_COM
+    participant "CONTPAQi\nContabilidad / Inventario" as C_CON
+    participant "Nomipaq\n(Nómina)" as NOMIPAQ
+    participant "SAT / IMSS\n(Gobierno)" as SAT
+end box
+
+box "Reportes Consolidados" #E8F5E9
+    participant "Master Cash Flow\n(Google Sheets/BI)" as REPORT
+end box
+
+== 1. Gestión de Órdenes y Facturación México ==
+HS -> ODOO_MX: Deal Ganado
+note right of ODOO_MX: Se lleva en paralelo Odoo en MX\ncomo sistema de cotización y órdenes.
+ODOO_MX -> N8N: Webhook: Orden Confirmada
+
+N8N -> WORKER: Enviar datos de facturación
+activate WORKER
+WORKER -> C_COM: Cargar datos de Venta y Pedimento
+note right of C_COM: C_COM requiere cargar el pedimento de\noperación para el antecedente de importación.
+
+alt Venta Directa (Contado/Crédito)
+    C_COM -> SAT: Enviar Factura para Timbrado
+    SAT --> C_COM: Timbre y Cadena Digital (XML)
+    C_COM -> WORKER: XML con liga a Pedimento
+else Venta con Anticipo
+    C_COM -> SAT: Emitir Factura de Anticipo (Claves Especiales)
+    SAT --> C_COM: Timbre Anticipo
+    ... Tiempo después: Mercancía Llega ...
+    C_COM -> SAT: Emitir Nuevo CFDI (Mercancía) + XML detallado
+    C_COM -> SAT: Emitir Nota de Crédito (Aplica el Anticipo)
+end
+deactivate WORKER
+
+== 2. Recepción de Pagos y Complementos (MX) ==
+CLIENTE -> C_COM: Realiza Pago de Factura
+C_COM -> SAT: Emitir Complemento de Pago
+note right of C_COM: Informa al SAT cómo se recibe el dinero\ny emite una cadena digital.
+C_COM -> C_CON: Cargar pago al sistema de contabilidad
+
+C_CON -> WORKER: Sincronizar pago registrado
+WORKER -> N8N: Notificar Ingreso a Global
+N8N -> REPORT: Actualizar Cash Flow (Saldos MX)
+
+== 3. Automatización HR & Nómina (Enfoque MX) ==
+N8N -> WORKER: Enviar Novedades de Personal / Incidencias
+WORKER -> NOMIPAQ: Cargar datos de período
+NOMIPAQ -> SAT: Aviso de pago de nómina y Timbrado
+NOMIPAQ -> SAT: Aviso al IMSS (Seguro Social)
+note right of NOMIPAQ: Todo pago de nómina realizado\nse avisa al SAT y al Seguro Social.
+SAT --> NOMIPAQ: Confirmación de Timbrado
+NOMIPAQ -> C_CON: Póliza contable de nómina
+
+== 4. Consolidación Final de Comisiones ==
+N8N -> WORKER: Consultar Pagos Aplicados en C_CON
+WORKER --> N8N: Pagos reales en México
+N8N -> ODOO_MX: Cruzar con Cotizaciones Originales
+N8N -> REPORT: Calcular Comisiones y enviar a Finanzas
+
+@enduml

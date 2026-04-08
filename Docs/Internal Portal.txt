@@ -1,0 +1,57 @@
+@startuml
+title Arquitectura de Sistema: Portal Interno Corporativo (Dynaproco)
+skinparam componentStyle uml2
+skinparam DefaultTextAlignment center
+
+actor "Empleado Dynaproco\n(Admin / Editor / Viewer)" as User
+
+cloud "Servicios Externos (Cloud)" #F5F8FA {
+    component "Google Workspace\n(OAuth 2.0 SSO)" as GoogleAuth
+    component "Google Drive API\n(Embeds: Docs/Sheets)" as GDrive
+    component "YouTube\n(Video Hosting)" as YouTube
+}
+
+node "Infraestructura de Aplicación (Vercel / Docker)" #E8F5E9 {
+    package "Frontend (Next.js / React)" {
+        component "UI & Dashboard\n(Navegación por Áreas)" as UI
+        component "Buscador UI\n(Tipo Spotlight)" as SearchUI
+        component "Rich Text Editor\n(TipTap / Quill)" as Editor
+        component "Media Viewers\n(react-pdf, HTML5 Video)" as Media
+    }
+
+    package "Backend (Next.js API Routes)" {
+        component "Auth Controller\n(NextAuth: Filtro @dynaproco)" as Auth
+        component "Content API\n(Gestión de Posts y Roles)" as ContentAPI
+        component "File Validator\n(Límite 500MB / Compresión)" as FileAPI
+    }
+}
+
+database "Infraestructura de Datos" #FFF3E0 {
+    database "PostgreSQL\n(Metadatos, Usuarios, Taxonomía)" as DB
+    storage "S3 / Blob Storage\n(Archivos y Videos Locales)" as S3
+    component "MeiliSearch / Algolia\n(Motor de Búsqueda Instantánea)" as SearchEngine
+}
+
+' --- Flujo de Autenticación ---
+User --> UI : Accede al portal
+UI --> Auth : Iniciar Sesión
+Auth <--> GoogleAuth : Valida token y dominio
+
+' --- Flujo de Creación y Visualización ---
+User --> Editor : Crea/Edita Artículos
+User --> Media : Consume contenido
+Editor --> ContentAPI : CRUD Posts (H1, H2, Listas)
+Editor --> FileAPI : Upload Multimedia (Drag & Drop)
+
+ContentAPI <--> DB : Lee/Escribe Metadatos
+FileAPI --> S3 : Almacena Archivo Físico
+Media <--> S3 : Carga PDFs/Videos locales
+Media <--> GDrive : Previsualiza Docs Privados
+Media <--> YouTube : Reproduce <iframe>
+
+' --- Flujo de Búsqueda (Discovery) ---
+User --> SearchUI : Busca en < 3 clics
+SearchUI <--> SearchEngine : Consulta ultra-rápida
+ContentAPI --> SearchEngine : Indexa título, tags y contenido
+
+@enduml

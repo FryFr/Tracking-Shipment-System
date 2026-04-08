@@ -1,18 +1,27 @@
-import { Search } from 'lucide-react';
+import { Search, Package } from 'lucide-react';
 import { useState } from 'react';
+import { isOrderReference } from '../hooks/useOrderTrackings';
 
 interface Props {
     onSearch: (trackingNumber: string) => void;
+    onSearchByOrder?: (orderRef: string) => void;
     loading: boolean;
 }
 
-export const TrackingInput = ({ onSearch, loading }: Props) => {
+export const TrackingInput = ({ onSearch, onSearchByOrder, loading }: Props) => {
     const [value, setValue] = useState('');
+
+    const isOrder = value.trim() ? isOrderReference(value.trim()) : false;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (value.trim()) {
-            onSearch(value.trim());
+        const trimmed = value.trim();
+        if (!trimmed) return;
+
+        if (isOrder && onSearchByOrder) {
+            onSearchByOrder(trimmed);
+        } else {
+            onSearch(trimmed);
         }
     };
 
@@ -23,22 +32,31 @@ export const TrackingInput = ({ onSearch, loading }: Props) => {
                     Track your shipment
                 </h1>
                 <p className="text-lg text-white/80">
-                    Enter your tracking number to get real-time updates
+                    Enter a tracking number or order reference (SO, PO, OC)
                 </p>
             </div>
 
             <form onSubmit={handleSubmit} className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                    <Search className="h-6 w-6 text-gray-400 group-focus-within:text-primary transition-colors" />
+                    {isOrder ? (
+                        <Package className="h-6 w-6 text-amber-400 transition-colors" />
+                    ) : (
+                        <Search className="h-6 w-6 text-gray-400 group-focus-within:text-primary transition-colors" />
+                    )}
                 </div>
                 <input
                     type="text"
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
-                    placeholder="Enter tracking number (e.g., 3543264550)"
+                    placeholder="e.g. 3543264550 or SO17558"
                     className="block w-full pl-14 pr-36 py-5 bg-white/95 backdrop-blur-md border border-white/20 focus:border-primary/50 rounded-2xl text-lg shadow-2xl focus:shadow-primary/20 focus:outline-none transition-all duration-300 placeholder:text-gray-400 text-gray-900"
                     disabled={loading}
                 />
+                {isOrder && (
+                    <div className="absolute top-full left-0 mt-2 px-3 py-1.5 bg-amber-500/20 border border-amber-500/30 rounded-lg text-amber-400 text-xs font-medium">
+                        Searching by order reference — will find all linked trackings
+                    </div>
+                )}
                 <button
                     type="submit"
                     disabled={loading || !value.trim()}
@@ -47,10 +65,10 @@ export const TrackingInput = ({ onSearch, loading }: Props) => {
                     {loading ? (
                         <>
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            <span>Tracking...</span>
+                            <span>{isOrder ? 'Searching...' : 'Tracking...'}</span>
                         </>
                     ) : (
-                        'Track'
+                        isOrder ? 'Search Order' : 'Track'
                     )}
                 </button>
             </form>

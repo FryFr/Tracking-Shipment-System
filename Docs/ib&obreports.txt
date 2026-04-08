@@ -1,0 +1,79 @@
+@startuml
+title Automatización Financiera: IB/OB Reports, Conciliación y Cartera
+autonumber
+skinparam responseMessageBelowArrow true
+skinparam maxmessagesize 150
+
+actor "Proveedor" as PROV
+box "Recepción y Logística" #E8F5E9
+    participant "Buzón Email\n(Facturas PDF)" as EMAIL
+    participant "Odoo\n(Almacén/PO)" as ODOO
+    actor "Logística" as LOG
+end box
+
+box "Orquestación (n8n)" #F3E5F5
+    participant "n8n\n(AI Parser & Sync)" as N8N
+end box
+
+box "Finanzas y Contabilidad" #FFF3E0
+    participant "Xero\n(Accounting)" as XERO
+    actor "Margarita\n(Finanzas)" as MARG
+end box
+actor "Cliente" as CLIENT
+
+== Fase 1: IB Report (Inbound - Compras y Cuentas por Pagar) ==
+PROV -> EMAIL: Envía Factura (PDF)
+N8N -> EMAIL: Trigger: Leer nuevo correo c/ adjunto
+activate N8N
+    N8N -> N8N: AI/OCR Extract: \nInv #, Fecha, Due Date (15/30 días),\nTaxes (por Estado de Canadá)
+    N8N -> ODOO: Buscar PO y verificar estado
+    
+    alt PO Recibida en Almacén
+        N8N -> XERO: Crear "Bill" (Factura de Compra)\n+ Adjuntar PDF Original
+        N8N -> XERO: Mapear Taxes Canadienses Automáticamente
+    else PO Pendiente de Recepción
+        N8N -> ODOO: Etiquetar como "Factura Recibida - En Tránsito"
+    end
+deactivate N8N
+
+== Fase 2: OB Report (Outbound - Ventas y Cuentas por Cobrar) ==
+LOG -> ODOO: Confirma salida de mercancía (Delivery)
+ODOO -> N8N: Webhook: OB Listo para Facturar
+activate N8N
+    N8N -> ODOO: Extraer datos de la Orden de Venta
+    N8N -> XERO: Crear "Sales Invoice" (Factura de Venta)
+    N8N -> XERO: Emitir Factura Oficial
+deactivate N8N
+
+== Fase 3: Reconciliación de Facturas (Margarita vs Logística) ==
+PROV -> EMAIL: Envía Estado de Cuenta (Registro de Facturas)
+N8N -> EMAIL: Extraer listado de facturas esperadas
+activate N8N
+    N8N -> XERO: Cruzar listado contra "Bills" registradas
+    
+    alt Faltan Facturas en Xero
+        N8N -> LOG: Slack/Email: "Alerta: Cargar facturas faltantes de Prov X"
+        N8N -> MARG: Reporte: "Discrepancias encontradas"
+        N8N -> PROV: (Opcional) Auto-Email: "Por favor reenviar facturas no recibidas"
+    else Todo Coincide
+        N8N -> MARG: Reporte: "Conciliación Exitosa"
+    end
+deactivate N8N
+
+== Fase 4: Cartera y Cobranza Personalizada ==
+loop Todos los días a las 8:00 AM
+    N8N -> XERO: Consultar Facturas (Invoices) No Pagadas
+    activate N8N
+        N8N -> N8N: Filtrar por (Due Date - 7 Días)
+        
+        opt Factura vence en 7 días
+            N8N -> CLIENT: Email Personalizado: "Recordatorio Amigable + Due Invoice"
+        end
+        opt Factura Vencida
+            N8N -> CLIENT: Email Escalamiento: "Aviso de Vencimiento"
+            N8N -> MARG: Alerta Cartera Vencida
+        end
+    deactivate N8N
+end
+
+@enduml

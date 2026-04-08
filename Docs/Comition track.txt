@@ -1,0 +1,60 @@
+@startuml
+title Comission Track & Report: Automatización y Aprobación
+autonumber
+skinparam responseMessageBelowArrow true
+skinparam maxmessagesize 150
+
+actor "Ventas / CAS" as SALES
+participant "HubSpot\n(CRM)" as HS
+participant "Odoo\n(Órdenes/Inventario)" as ODOO
+box "Facturación y Cobranza" #F9F9F9
+    participant "Xero\n(CA Billing)" as XERO
+    participant "CONTPAQi\n(MX Billing)" as COMPACT
+end box
+participant "App Comisiones\n(Propuesta Juan)" as APP
+actor "Gerente / Director\n(Aprobadores)" as ADMIN
+
+== 1. Registro y Cierre de Venta ==
+SALES -> HS: Registra Interacción y asigna "Deal Collaborator"
+note right of HS: Regla de John: Sin datos en HubSpot,\nel trabajo no existió (No hay comisión).
+HS -> ODOO: Genera Sales Order (Vía ActivePieces)
+
+== 2. Facturación y Cobranza (Bifurcación CA / MX) ==
+alt Operación Canadá (CA)
+    ODOO -> XERO: Envía N° Factura para seguimiento AR
+    XERO -> XERO: Cliente paga -> Balance = 0
+else Operación México (MX)
+    ODOO -> COMPACT: Genera Factura
+    COMPACT -> COMPACT: Cliente paga (Genera Folio de Pago)
+    note right of COMPACT: Requiere cruzar archivos de pago,\nnotas de crédito y CxC.
+end
+
+== 3. Extracción y Motor de Reglas (La Nueva App) ==
+loop Ejecución Mensual / Semanal
+    APP -> ODOO: Verifica estatus: ¿Fully Delivered?
+    APP -> XERO: (CA) Verifica estatus: ¿Fully Paid?
+    APP -> COMPACT: (MX) Valida Folios de Pago y Cancelaciones
+    
+    activate APP
+        APP -> HS: Verifica Interacción, Owner y Tipo de Deal
+        
+        alt SO no pagada/entregada o Sin registro en HS
+            APP -> APP: Comisión = Rechazada / Pendiente
+        else Cumple requisitos base
+            APP -> APP: Deduce costo de Flete (Freight)
+            
+            alt Deal Type: Sales Representative / Self-Prospected
+                APP -> APP: Calcula Comisión: 3%
+            else Deal Type: Renewal
+                APP -> APP: Calcula Comisión: 1%
+            end
+        end
+    deactivate APP
+end
+
+== 4. Proceso de Doble Aprobación ==
+APP -> ADMIN: Genera "Comission Track Report" unificado
+ADMIN -> APP: Paso 1: Aprobación del Gerente
+ADMIN -> APP: Paso 2: Aprobación del Director (Opcional/Monto)
+APP -> SALES: Notifica comisión aprobada y lista para pago
+@enduml

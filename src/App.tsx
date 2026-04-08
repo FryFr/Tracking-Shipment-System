@@ -2,18 +2,66 @@ import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { TrackingInput } from './components/TrackingInput';
 import { TrackingResult } from './components/TrackingResult';
+import { LogisticsETAForm } from './components/LogisticsETAForm';
+import { OrderLinkForm } from './components/OrderLinkForm';
 import { useTracking } from './hooks/useTracking';
 import { useAuth } from './hooks/useAuth';
+import { fetchETA, saveETA } from './hooks/useLogisticsETA';
+import { fetchTrackingsByOrder, fetchOrderRefs, saveOrderLink } from './hooks/useOrderTrackings';
 import Login from './components/Login';
-import { Truck, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { Truck, ChevronLeft, ChevronRight, LogOut, Package } from 'lucide-react';
 import Feedback from './components/Feedback';
+import type { TrackingData } from './types/tracking';
 
 function App() {
   const { user, loading: authLoading, error: authError, loginWithGoogle, logout } = useAuth();
-  const { data, loading, error, trackShipment } = useTracking();
+  const { data: rawData, loading, error, trackShipment } = useTracking();
+  const [enrichedData, setEnrichedData] = useState<TrackingData[] | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [editingETAIndex, setEditingETAIndex] = useState<number | null>(null);
+  const [editingOrderIndex, setEditingOrderIndex] = useState<number | null>(null);
+  const [orderSearchRef, setOrderSearchRef] = useState<string | null>(null);
+
+  // Enrich webhook data with Firestore logistics ETA + order refs, then sort by order grouping
+  useEffect(() => {
+    if (!rawData) return;
+
+    let cancelled = false;
+    const enrich = async () => {
+      const enriched = await Promise.all(
+        rawData.map(async (item) => {
+          const [eta, orderRefs] = await Promise.all([
+            fetchETA(item.tracking_number).catch(() => null),
+            fetchOrderRefs(item.tracking_number).catch(() => null),
+          ]);
+          let result = item;
+          if (eta) result = { ...result, logistics_eta: eta };
+          if (orderRefs) {
+            result = {
+              ...result,
+              order_references: { ...result.order_references, ...orderRefs },
+            };
+          }
+          return result;
+        })
+      );
+
+      // Sort by order_id then shipment_index (items without grouping go last)
+      enriched.sort((a, b) => {
+        const aId = a.shipment_grouping?.order_id ?? '';
+        const bId = b.shipment_grouping?.order_id ?? '';
+        if (aId !== bId) return aId.localeCompare(bId);
+        return (a.shipment_grouping?.shipment_index ?? 999) - (b.shipment_grouping?.shipment_index ?? 999);
+      });
+
+      if (!cancelled) setEnrichedData(enriched);
+    };
+
+    enrich();
+    return () => { cancelled = true; };
+  }, [rawData]);
 
   // Reset view if error occurs
   useEffect(() => {
@@ -23,13 +71,30 @@ function App() {
     }
   }, [error]);
 
+  // Use enriched data (falls back to raw if enrichment not ready yet)
+  const data = enrichedData ?? rawData;
+
   // Background style
   const backgroundStyle = {
     background: 'radial-gradient(circle at 50% 0%, #2a2a2a 0%, #111111 60%)',
   };
 
   const handleSearch = async (trackingNumber: string) => {
+    setOrderSearchRef(null);
     await trackShipment(trackingNumber);
+    setShowResult(true);
+    setIsExiting(false);
+    setActiveIndex(0);
+  };
+
+  const handleSearchByOrder = async (orderRef: string) => {
+    setOrderSearchRef(orderRef.toUpperCase());
+    const trackingNumbers = await fetchTrackingsByOrder(orderRef);
+    if (trackingNumbers.length === 0) {
+      alert(`No trackings linked to ${orderRef.toUpperCase()} yet. Track a shipment first, then link it to this order.`);
+      return;
+    }
+    await trackShipment(trackingNumbers.join(','));
     setShowResult(true);
     setIsExiting(false);
     setActiveIndex(0);
@@ -81,19 +146,27 @@ function App() {
             <div className="mb-8 p-6 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 shadow-2xl">
               <Truck className="w-20 h-20 text-blue-600 opacity-90" strokeWidth={1.5} />
             </div>
-            <TrackingInput onSearch={handleSearch} loading={loading} />
+            <TrackingInput onSearch={handleSearch} onSearchByOrder={handleSearchByOrder} loading={loading} />
           </div>
         ) : (
           <div className={`w-full relative min-h-[80vh] flex justify-center pt-24 md:pt-32 ${isExiting ? 'animate-slide-down' : 'animate-slide-up'}`}>
-            <button
-              onClick={handleBack}
-              className="absolute top-4 left-4 md:top-8 md:left-8 z-50 flex items-center gap-2 text-white/80 hover:text-white transition-colors group bg-black/20 hover:bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10"
-            >
-              <div className="p-1 rounded-lg">
-                <Truck className="w-4 h-4" />
-              </div>
-              <span className="font-medium text-sm">Track another</span>
-            </button>
+            <div className="absolute top-4 left-4 md:top-8 md:left-8 z-50 flex items-center gap-3">
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-2 text-white/80 hover:text-white transition-colors group bg-black/20 hover:bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10"
+              >
+                <div className="p-1 rounded-lg">
+                  <Truck className="w-4 h-4" />
+                </div>
+                <span className="font-medium text-sm">Track another</span>
+              </button>
+              {orderSearchRef && data && (
+                <div className="flex items-center gap-2 bg-amber-500/20 backdrop-blur-md px-4 py-2 rounded-full border border-amber-500/30 text-amber-400">
+                  <Package className="w-4 h-4" />
+                  <span className="font-medium text-sm">{orderSearchRef} &mdash; {data.length} shipment{data.length !== 1 ? 's' : ''}</span>
+                </div>
+              )}
+            </div>
 
             <div className="relative w-full max-w-5xl h-full flex justify-center items-start perspective-1000">
               {data && data.map((item, index) => {
@@ -136,6 +209,8 @@ function App() {
                         <TrackingResult
                           data={item}
                           showBackButton={false}
+                          onEditETA={isSelected ? () => setEditingETAIndex(index) : undefined}
+                          onLinkOrder={isSelected ? () => setEditingOrderIndex(index) : undefined}
                         />
                       </div>
                     </div>
@@ -164,17 +239,25 @@ function App() {
               </>
             )}
 
-            {/* Carousel Indicators */}
+            {/* Carousel Indicators with order group separators */}
             {data && data.length > 1 && (
-              <div className="fixed bottom-8 flex gap-2 z-50">
-                {data.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveIndex(idx)}
-                    className={`h-2 rounded-full transition-all duration-300 shadow-md ${idx === activeIndex ? 'bg-blue-500 w-8' : 'bg-gray-600/50 hover:bg-gray-500 w-2'}`}
-                    aria-label={`Go to slide ${idx + 1}`}
-                  />
-                ))}
+              <div className="fixed bottom-8 flex items-center gap-2 z-50">
+                {data.map((item, idx) => {
+                  const prevOrderId = idx > 0 ? data[idx - 1].shipment_grouping?.order_id : undefined;
+                  const currentOrderId = item.shipment_grouping?.order_id;
+                  const showSeparator = idx > 0 && currentOrderId && prevOrderId && currentOrderId !== prevOrderId;
+
+                  return (
+                    <div key={idx} className="flex items-center gap-2">
+                      {showSeparator && <div className="w-px h-4 bg-white/20" />}
+                      <button
+                        onClick={() => setActiveIndex(idx)}
+                        className={`h-2 rounded-full transition-all duration-300 shadow-md ${idx === activeIndex ? 'bg-blue-500 w-8' : 'bg-gray-600/50 hover:bg-gray-500 w-2'}`}
+                        aria-label={`Go to slide ${idx + 1}`}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -186,6 +269,44 @@ function App() {
       </footer>
 
       {user.email && <Feedback userEmail={user.email} />}
+
+      {/* Logistics ETA Edit Modal */}
+      {editingETAIndex !== null && data && data[editingETAIndex] && user.email && (
+        <LogisticsETAForm
+          trackingNumber={data[editingETAIndex].tracking_number}
+          carrierEta={data[editingETAIndex].eta}
+          initial={data[editingETAIndex].logistics_eta}
+          onClose={() => setEditingETAIndex(null)}
+          onSave={async (etaData) => {
+            await saveETA(data[editingETAIndex].tracking_number, etaData, user.email!);
+            const updated = [...data];
+            const fresh = await fetchETA(data[editingETAIndex].tracking_number);
+            if (fresh) updated[editingETAIndex] = { ...updated[editingETAIndex], logistics_eta: fresh };
+            setEnrichedData(updated);
+          }}
+        />
+      )}
+
+      {/* Order Link Modal */}
+      {editingOrderIndex !== null && data && data[editingOrderIndex] && user.email && (
+        <OrderLinkForm
+          trackingNumber={data[editingOrderIndex].tracking_number}
+          initial={data[editingOrderIndex].order_references}
+          onClose={() => setEditingOrderIndex(null)}
+          onSave={async (refs) => {
+            await saveOrderLink(data[editingOrderIndex].tracking_number, refs, user.email!);
+            const updated = [...data];
+            const freshRefs = await fetchOrderRefs(data[editingOrderIndex].tracking_number);
+            if (freshRefs) {
+              updated[editingOrderIndex] = {
+                ...updated[editingOrderIndex],
+                order_references: { ...updated[editingOrderIndex].order_references, ...freshRefs },
+              };
+            }
+            setEnrichedData(updated);
+          }}
+        />
+      )}
     </div>
   );
 }

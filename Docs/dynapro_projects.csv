@@ -1,0 +1,7 @@
+﻿Project name,Pipeline,Pipeline stage,Project owner,Description
+Core Operations — KAS Workcenter & Shipment Tracking,Project Pipeline,In Progress,juan.silva@dynaproco.com,Track A: Automatizar cotización KAS y seguimiento de POs/Logística. Conecta HubSpot + n8n + Odoo.
+Finance & Compliance — IB/OB Reports + CONTPAQi,Project Pipeline,Planning,juan.silva@dynaproco.com,"Track B: IB/OB Reports, Reconciliación, Cartera, integración CONTPAQi + SAT México."
+"Sales Automation — Leads, Commissions & MKT",Project Pipeline,Planning,juan.silva@dynaproco.com,"Track C: Captura de leads por correo, app de comisiones con doble aprobación, MKT mapping."
+Internal Portal — Dynaproco Knowledge Hub,Project Pipeline,In Progress,juan.silva@dynaproco.com,"Track D: Portal interno corporativo con Next.js/React, SSO Google, búsqueda Spotlight. MVP 4 semanas."
+Infrastructure & Cloud,Project Pipeline,Planning,juan.silva@dynaproco.com,Infra: n8n on-premise Docker + selección proveedor cloud (Azure/AWS/GCP) para AD y VPN.
+AI Adoption Program,Project Pipeline,Planning,juan.silva@dynaproco.com,"Cross: Programa de adopción IA con Google — Gemini Workspace, NotebookLM, Google AI Studio."

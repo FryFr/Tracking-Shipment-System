@@ -1,0 +1,85 @@
+@startuml
+title Arquitectura de Automatización Intercompany: Odoo (MX/CA) - n8n - CONTPAQi
+autonumber
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 180
+
+box "Fase 1: Comercial & Trigger" #F9F9F9
+    participant "HubSpot CRM" as HS
+    participant "n8n Cloud\n(Orquestador)" as N8N
+end box
+
+box "Infraestructura México" #E1F5FE
+    participant "Odoo MX\n(Ventas/Inventario)" as ODOO_MX
+    queue "n8n Agente/Túnel\n(On-Premise)" as WORKER
+    database "CONTPAQi\n(SQL Server)" as CONTPAQI
+end box
+
+box "Infraestructura Canadá/Global" #FFF3E0
+    participant "Odoo Canadá\n(Intercompany)" as ODOO_CA
+    participant "Proveedor\n(China/Global)" as VENDOR
+end box
+
+== FASE A: Origen de la Demanda ==
+HS -> N8N: Webhook: Deal Won (Cliente, Items)
+activate N8N
+    note right of N8N: Valida mapeo de SKUs y Clave SAT\nantes de procesar
+    N8N -> ODOO_MX: Crear Sales Order (SO)
+    ODOO_MX --> N8N: Retorna ID SO-MX
+    
+    N8N -> N8N: Evaluar Regla de Stock:\n¿Requiere Importación?
+deactivate N8N
+
+== FASE B: Triangulación Automática (El proceso x3) ==
+group Automatización Intercompany
+    N8N -> ODOO_MX: Crear Purchase Order (PO-MX)\nProveedor: Dynapro Canada
+    activate ODOO_MX
+    ODOO_MX --> N8N: Retorna ID PO-MX
+    deactivate ODOO_MX
+
+    N8N -> ODOO_CA: 1. Crear Sales Order (SO-CA)\nCliente: Dynapro MX
+    
+    N8N -> ODOO_CA: 2. Crear Purchase Order (PO-CA)\nProveedor: China
+    
+    N8N -> ODOO_CA: 3. Vincular IDs (Link Cross-Reference)
+    note right of ODOO_CA
+        Guarda ID PO-MX en campos custom
+        para trazabilidad
+    end note
+end
+
+== FASE C: Logística y Tránsito ==
+VENDOR -> ODOO_CA: Confirma Envío / Factura
+activate ODOO_CA
+    ODOO_CA -> N8N: Webhook: Estado "En Tránsito"
+deactivate ODOO_CA
+
+N8N -> ODOO_CA: Generar Factura (Invoice CA->MX)
+N8N -> ODOO_MX: Crear Vendor Bill (Borrador)\nAdjunta PDF Canadá
+note left of ODOO_MX: MX se prepara para\nrecibir importación
+
+== FASE D: Aduana y Pedimentos (Manual + Auto) ==
+hnote over ODOO_MX: Operador carga datos de\nPedimento en Recepción (Stock Picking)
+
+ODOO_MX -> N8N: Webhook: Stock Validado + Pedimento
+activate N8N
+    N8N -> ODOO_MX: Actualizar Lotes/Series\ncon N° Pedimento
+    N8N -> ODOO_MX: Calcular Landed Costs (Opcional)
+deactivate N8N
+
+== FASE E: Integración On-Premise (CONTPAQi) ==
+N8N -> WORKER: Enviar JSON (Póliza de Compra)\nIncluye XML/Pedimento/UUID
+activate WORKER
+    note right of WORKER
+        Túnel seguro VPN
+        o Agente Local
+    end note
+    
+    WORKER -> CONTPAQI: Insertar en BD SQL (SDK/Directo)
+    CONTPAQI --> WORKER: Confirmación ID Póliza
+    WORKER --> N8N: Éxito
+deactivate WORKER
+
+N8N -> HS: Actualizar Timeline: "Material Recibido y Contabilizado"
+
+@enduml

@@ -49,7 +49,7 @@ export const useAuth = () => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 // Double check domain even if already logged in
-                if (user.email?.endsWith('@dynaproco.com')) {
+                if (user.email?.endsWith('@dynaproco.com') || user.email?.endsWith('@dynaproequipment.com')) {
                     setUser(user);
                     if (!sessionIdRef.current) {
                         startSession(user.email);
@@ -57,7 +57,7 @@ export const useAuth = () => {
                 } else {
                     signOut(auth);
                     setUser(null);
-                    setError('Access restricted to @dynaproco.com domain.');
+                    setError('Access restricted to @dynaproco.com or @dynaproequipment.com.');
                 }
             } else {
                 if (sessionIdRef.current) {
@@ -92,9 +92,9 @@ export const useAuth = () => {
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
 
-            if (!user.email?.endsWith('@dynaproco.com')) {
+            if (!user.email?.endsWith('@dynaproco.com') && !user.email?.endsWith('@dynaproequipment.com')) {
                 await signOut(auth);
-                setError('Access restricted to @dynaproco.com domain.');
+                setError('Access restricted to @dynaproco.com or @dynaproequipment.com.');
                 setUser(null);
             } else {
                 setUser(user);
