@@ -52,13 +52,22 @@ export const useTracking = () => {
             // Wait for all to complete
             const results = await Promise.all(promises);
 
-            // Filter out nulls and normalize new fields for backward compat
+            // Filter out nulls and normalize fields for n8n response compat
             const validData = results
                 .filter((item): item is TrackingData => item !== null)
-                .map((item) => ({
-                    ...item,
-                    carrier_info: item.carrier_info ?? { slug: item.courier_slug },
-                }));
+                .map((item) => {
+                    const raw = item as any;
+                    return {
+                        ...item,
+                        carrier_info: item.carrier_info ?? { slug: item.courier_slug },
+                        // n8n returns raw_checkpoints_data, app expects raw_checkpoints
+                        raw_checkpoints: item.raw_checkpoints ?? raw.raw_checkpoints_data ?? [],
+                        // n8n returns last_event_date, app expects last_update
+                        last_update: item.last_update ?? raw.last_event_date ?? '',
+                        // Normalize status_detail from n8n
+                        status_detail: item.status_detail || raw.status || 'Unknown',
+                    };
+                });
 
             if (validData.length > 0) {
                 setData(validData);
