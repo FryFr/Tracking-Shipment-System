@@ -14,7 +14,7 @@ import Feedback from './components/Feedback';
 import type { TrackingData } from './types/tracking';
 
 function App() {
-  const { user, loading: authLoading, error: authError, loginWithGoogle, logout } = useAuth();
+  const { user, role, loading: authLoading, error: authError, loginWithGoogle, logout } = useAuth();
   const { data: rawData, loading, error, trackShipment } = useTracking();
   const [enrichedData, setEnrichedData] = useState<TrackingData[] | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -208,6 +208,7 @@ function App() {
                       <div className={isSelected ? 'pointer-events-auto' : 'pointer-events-none'}>
                         <TrackingResult
                           data={item}
+                          role={role}
                           showBackButton={false}
                           onEditETA={isSelected ? () => setEditingETAIndex(index) : undefined}
                           onLinkOrder={isSelected ? () => setEditingOrderIndex(index) : undefined}

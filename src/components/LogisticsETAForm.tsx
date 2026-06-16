@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
 import { addWeeks, format, isValid } from 'date-fns';
 import type { LogisticsETA } from '../types/tracking';
-import { PORT_OPTIONS } from '../utils/portDefaults';
+import { PORT_OPTIONS, PORT_ETA_DEFAULTS } from '../utils/portDefaults';
 
 interface Props {
     trackingNumber: string;
@@ -97,12 +97,24 @@ export const LogisticsETAForm = ({ trackingNumber, carrierEta, initial, onSave, 
 
                     <div>
                         <label className={labelClass}>Port of Entry</label>
-                        <select value={port} onChange={(e) => setPort(e.target.value)} className={inputClass}>
+                        <select
+                            value={port}
+                            onChange={(e) => {
+                                const next = e.target.value;
+                                setPort(next);
+                                const preset = PORT_ETA_DEFAULTS[next];
+                                if (typeof preset === 'number') setCustomsWeeks(preset);
+                            }}
+                            className={inputClass}
+                        >
                             <option value="">Select port...</option>
                             {PORT_OPTIONS.map((p) => (
-                                <option key={p} value={p}>{p}</option>
+                                <option key={p} value={p}>{p} ({PORT_ETA_DEFAULTS[p]}w default)</option>
                             ))}
                         </select>
+                        {port && (
+                            <p className="text-gray-500 text-xs mt-1">Customs auto-filled from port default. Override manually if needed.</p>
+                        )}
                     </div>
 
                     <div>

@@ -1,10 +1,12 @@
 import { format, isValid, addWeeks } from 'date-fns';
 import { ArrowLeft, Box, Calendar, MapPin, Truck, Shield, ShieldCheck, Pencil, Link2 } from 'lucide-react';
-import type { TrackingData } from '../types/tracking';
+import type { TrackingData, UserRole } from '../types/tracking';
+import { canEditLogistics, canSeeAdjustedEta } from '../types/tracking';
 import { Timeline } from './Timeline';
 
 interface Props {
     data: TrackingData;
+    role: UserRole | null;
     onBack?: () => void;
     showBackButton?: boolean;
     onEditETA?: () => void;
@@ -32,10 +34,14 @@ const getCardGlowStyles = (status: string) => {
     return 'shadow-[0_0_50px_-12px_rgba(37,99,235,0.7)] ring-2 ring-blue-500/50';
 };
 
-export const TrackingResult = ({ data, onBack, showBackButton = true, onEditETA, onLinkOrder }: Props) => {
+export const TrackingResult = ({ data, role, onBack, showBackButton = true, onEditETA, onLinkOrder }: Props) => {
     const statusColor = getStatusColor(data.status_detail);
     const carrierName = data.carrier_info?.name ?? data.courier_slug;
     const { order_references: refs, shipment_grouping: grouping, logistics_eta: eta } = data;
+
+    const canEdit = role ? canEditLogistics(role) : false;
+    const showAdjustedEta = role ? canSeeAdjustedEta(role, eta?.reviewed) : false;
+    const isLogisticsView = role === 'logistics' || role === 'admin';
 
     // Compute estimated arrival including customs if logistics ETA exists
     const estimatedArrivalWithCustoms = (() => {
@@ -76,7 +82,7 @@ export const TrackingResult = ({ data, onBack, showBackButton = true, onEditETA,
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            {eta != null && (
+                            {eta != null && isLogisticsView && (
                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                                     eta.reviewed
                                         ? 'bg-green-500/20 text-green-400 border border-green-500/30'
@@ -87,6 +93,11 @@ export const TrackingResult = ({ data, onBack, showBackButton = true, onEditETA,
                                     ) : (
                                         <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> Pending Review</span>
                                     )}
+                                </span>
+                            )}
+                            {eta != null && !isLogisticsView && eta.reviewed && (
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
+                                    <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Logistics Reviewed</span>
                                 </span>
                             )}
                             <div className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 ${statusColor}`}>
@@ -148,11 +159,16 @@ export const TrackingResult = ({ data, onBack, showBackButton = true, onEditETA,
                             <div>
                                 <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold">Carrier ETA</p>
                                 <p className="font-medium text-lg">{formatEta(data.eta)}</p>
-                                {estimatedArrivalWithCustoms && (
+                                {estimatedArrivalWithCustoms && showAdjustedEta && (
                                     <div className="mt-1">
-                                        <p className="text-amber-400 text-xs uppercase tracking-wider font-semibold">Est. w/ Customs</p>
+                                        <p className="text-amber-400 text-xs uppercase tracking-wider font-semibold">
+                                            {isLogisticsView ? 'Est. w/ Customs' : 'Logistics-Adjusted ETA'}
+                                        </p>
                                         <p className="font-medium text-amber-400">{formatEta(estimatedArrivalWithCustoms)}</p>
                                     </div>
+                                )}
+                                {estimatedArrivalWithCustoms && !showAdjustedEta && !isLogisticsView && (
+                                    <p className="text-amber-400/60 text-xs mt-1 italic">Pending logistics review</p>
                                 )}
                             </div>
                         </div>
@@ -170,8 +186,8 @@ export const TrackingResult = ({ data, onBack, showBackButton = true, onEditETA,
                         </div>
                     </div>
 
-                    {/* Action buttons */}
-                    {(onEditETA || onLinkOrder) && (
+                    {/* Action buttons — only for logistics/admin */}
+                    {canEdit && (onEditETA || onLinkOrder) && (
                         <div className="mt-4 pt-4 border-t border-gray-700 flex justify-end gap-2">
                             {onLinkOrder && (
                                 <button

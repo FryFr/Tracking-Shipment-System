@@ -3,7 +3,43 @@ rules_version='2'
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Authenticated Dynapro users can create/update their own session records
+    // Helper: resolve the signed-in user's role from users/{uid}
+    function userRole() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : 'sales';
+    }
+    function isLogisticsOrAdmin() {
+      return request.auth != null && (userRole() == 'logistics' || userRole() == 'admin');
+    }
+    function isAdmin() {
+      return request.auth != null && userRole() == 'admin';
+    }
+
+    // User profiles — each user reads/seeds their own; only admin can change roles for others
+    match /users/{uid} {
+      // Read: any authenticated Dynapro user can read profiles (needed for showing names, etc.)
+      allow read: if request.auth != null;
+
+      // Create: user can create their own doc on first login (useAuth seeds it)
+      // Must set email to their own auth email and role must be 'logistics' or 'sales' (self-assignment)
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role in ['logistics', 'sales'];
+
+      // Update: user can update their own profile EXCEPT the role field; admin can update anything
+      allow update: if request.auth != null
+        && (
+          (request.auth.uid == uid && request.resource.data.role == resource.data.role)
+          || isAdmin()
+        );
+
+      // Delete: admin only
+      allow delete: if isAdmin();
+    }
+
+    // Usage sessions — users create/update their own
     match /usage_sessions/{sessionId} {
       allow create: if request.auth != null
         && request.resource.data.email == request.auth.token.email;
@@ -12,27 +48,30 @@ service cloud.firestore {
       allow read: if request.auth != null;
     }
 
-    // Authenticated users can submit feedback (write-only for privacy)
+    // Feedback — write-only for user privacy
     match /feedback/{feedbackId} {
       allow create: if request.auth != null
         && request.resource.data.email == request.auth.token.email;
     }
 
-    // Logistics ETA annotations — authenticated Dynapro users can read/write
+    // Logistics ETA annotations — any Dynapro user can read; only logistics/admin can write
     match /logistics_eta/{trackingNumber} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if isLogisticsOrAdmin();
     }
 
-    // Order-tracking associations — maps order refs (SO/PO/OC) to tracking numbers
+    // Order-tracking associations — any Dynapro user can read; only logistics/admin can write
     match /order_trackings/{orderId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if isLogisticsOrAdmin();
     }
 
-    // Tracking metadata — stores order references linked from the web app
+    // Tracking metadata — any Dynapro user can read; only logistics/admin can write
     match /tracking_metadata/{trackingNumber} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if isLogisticsOrAdmin();
     }
 
-    // Deny everything else by default (no wildcard open access)
+    // Deny everything else by default
   }
 }

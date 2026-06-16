@@ -29,3 +29,6 @@ firebase-debug.log*
 firestore-debug.log*
 ui-debug.log*
 
+# MCP config (contains auth tokens for HubSpot/n8n/Odoo)
+.mcp.json
+
