@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { Search, LayoutDashboard, History, LogOut, Truck } from 'lucide-react';
+import { Search, LayoutDashboard, History, LogOut } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import logo from '../assets/logo-vector.png';
 
 const links = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -16,7 +17,7 @@ export const Sidebar = () => {
     <>
       {/* Desktop: sidebar vertical */}
       <nav className="hidden md:flex fixed top-0 left-0 h-full w-20 flex-col items-center gap-6 py-5 bg-[#0f172a] border-r border-white/10 z-[70]">
-        <Truck className="w-7 h-7 text-blue-500" />
+        <img src={logo} alt="Dynapro" className="w-12 h-auto object-contain" />
         <div className="flex-1 flex flex-col gap-5 mt-2">
           {links.map(({ to, icon: Icon, label }) => (
             <NavLink

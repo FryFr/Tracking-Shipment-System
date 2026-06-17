@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import type { TrackingData } from '../types/tracking';
-import { fetchTrackingDoc, queryTrackingsByOrder, placeholderTracking } from './useTrackingStore';
+import { fetchTrackingDoc, queryTrackingsByOrder, placeholderTracking, requestRefresh } from './useTrackingStore';
 
-// Email-first: la búsqueda lee el store de Firestore (alimentado por n8n desde
-// los correos). No hay llamada a una API de tracking en vivo; el estado al minuto
-// se ve con el deep-link al courier dentro de la tarjeta.
+// Lee el store de Firestore (alimentado por correos + 17track). Si un número no
+// está, dispara un lookup on-demand a 17track (auto-detecta el courier), espera
+// y reintenta — así se puede buscar cualquier tracking, no solo los de correos.
+
+/** ¿El doc trae data real, o es un placeholder sin estado? */
+const hasRealData = (t: TrackingData | null): boolean =>
+    !!t && t.data_source !== undefined && t.status_detail !== 'No tracking data yet';
 
 export const useTracking = () => {
     const [data, setData] = useState<TrackingData[] | null>(null);
@@ -22,9 +26,22 @@ export const useTracking = () => {
                 setLoading(false);
                 return;
             }
-            // Doc guardado o placeholder (igual muestra el deep-link al courier)
             const results = await Promise.all(
-                tns.map(async (tn) => (await fetchTrackingDoc(tn).catch(() => null)) ?? placeholderTracking(tn)),
+                tns.map(async (tn) => {
+                    let doc = await fetchTrackingDoc(tn).catch(() => null);
+                    // Si no está en el store (o no tiene data real), pedir lookup on-demand
+                    // a 17track (auto-detecta el courier), esperar y reintentar.
+                    if (!hasRealData(doc)) {
+                        await requestRefresh(tn, '').catch(() => {});
+                        // 17track registra y trae data async; reintentamos unas veces.
+                        for (let i = 0; i < 3 && !hasRealData(doc); i++) {
+                            await new Promise((r) => setTimeout(r, 5000));
+                            const retry = await fetchTrackingDoc(tn).catch(() => null);
+                            if (hasRealData(retry)) doc = retry;
+                        }
+                    }
+                    return doc ?? placeholderTracking(tn);
+                }),
             );
             setData(results);
         } catch (err) {

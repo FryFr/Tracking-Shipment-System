@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import Feedback from './Feedback';
 import { useAuth } from '../hooks/useAuth';
+import logo from '../assets/logo-vector.png';
 
 const bg = { background: 'radial-gradient(circle at 50% 0%, #1e293b 0%, #0b1120 60%)' };
 
@@ -16,6 +17,11 @@ export const AppShell = () => {
       </div>
 
       <Sidebar />
+
+      {/* Top bar con logo — solo mobile (en desktop el logo está en el sidebar) */}
+      <header className="md:hidden sticky top-0 z-[60] flex items-center px-4 h-14 bg-[#0f172a]/90 backdrop-blur-md border-b border-white/10">
+        <img src={logo} alt="Dynapro" className="h-8 w-auto object-contain" />
+      </header>
 
       <main className="md:pl-20 pb-20 md:pb-0 min-h-screen relative z-10">
         <Outlet />
