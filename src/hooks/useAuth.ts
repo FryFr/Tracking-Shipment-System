@@ -8,10 +8,50 @@ import {
     browserLocalPersistence
 } from 'firebase/auth';
 import { auth, googleProvider, db } from '../firebase';
-import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import {
+    collection,
+    addDoc,
+    updateDoc,
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp,
+} from 'firebase/firestore';
+import type { UserRole } from '../types/tracking';
+
+const LOGISTICS_EMAILS = new Set([
+    'yannett@dynaproco.com',
+    'emilka.guerra@dynaproequipment.com',
+]);
+
+const defaultRoleFor = (email: string | null | undefined): UserRole => {
+    if (email && LOGISTICS_EMAILS.has(email.toLowerCase())) return 'logistics';
+    return 'sales';
+};
+
+const loadOrSeedRole = async (user: User): Promise<UserRole> => {
+    const ref = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+        const data = snap.data();
+        const role = data.role as UserRole | undefined;
+        if (role === 'logistics' || role === 'sales' || role === 'cas' || role === 'admin') {
+            return role;
+        }
+    }
+    const role = defaultRoleFor(user.email);
+    await setDoc(ref, {
+        email: user.email ?? null,
+        displayName: user.displayName ?? null,
+        role,
+        created_at: serverTimestamp(),
+    }, { merge: true });
+    return role;
+};
 
 export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
+    const [role, setRole] = useState<UserRole | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const sessionIdRef = useRef<string | null>(null);
@@ -34,8 +74,6 @@ export const useAuth = () => {
         if (!sessionIdRef.current) return;
         try {
             const sessionDoc = doc(db, 'usage_sessions', sessionIdRef.current);
-            // We can't easily calculate duration in Firestore serverTimestamp if we want it in the same doc immediately
-            // Better to just record end time.
             await updateDoc(sessionDoc, {
                 endTime: serverTimestamp(),
             });
@@ -46,17 +84,24 @@ export const useAuth = () => {
     };
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // Double check domain even if already logged in
-                if (user.email?.endsWith('@dynaproco.com') || user.email?.endsWith('@dynaproequipment.com')) {
-                    setUser(user);
+        const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+            if (authUser) {
+                if (authUser.email?.endsWith('@dynaproco.com') || authUser.email?.endsWith('@dynaproequipment.com')) {
+                    setUser(authUser);
                     if (!sessionIdRef.current) {
-                        startSession(user.email);
+                        startSession(authUser.email);
+                    }
+                    try {
+                        const resolvedRole = await loadOrSeedRole(authUser);
+                        setRole(resolvedRole);
+                    } catch (err) {
+                        console.error('Error loading role:', err);
+                        setRole(defaultRoleFor(authUser.email));
                     }
                 } else {
                     signOut(auth);
                     setUser(null);
+                    setRole(null);
                     setError('Access restricted to @dynaproco.com or @dynaproequipment.com.');
                 }
             } else {
@@ -64,15 +109,13 @@ export const useAuth = () => {
                     endSession();
                 }
                 setUser(null);
+                setRole(null);
             }
             setLoading(false);
         });
 
-        // Handle tab closing
         const handleUnload = () => {
             if (sessionIdRef.current) {
-                // navigator.sendBeacon is better for this but Firestore SDK won't work in unload
-                // We'll just try our best with endSession (it might fail if async)
                 endSession();
             }
         };
@@ -90,15 +133,23 @@ export const useAuth = () => {
         try {
             await setPersistence(auth, browserLocalPersistence);
             const result = await signInWithPopup(auth, googleProvider);
-            const user = result.user;
+            const loggedInUser = result.user;
 
-            if (!user.email?.endsWith('@dynaproco.com') && !user.email?.endsWith('@dynaproequipment.com')) {
+            if (!loggedInUser.email?.endsWith('@dynaproco.com') && !loggedInUser.email?.endsWith('@dynaproequipment.com')) {
                 await signOut(auth);
                 setError('Access restricted to @dynaproco.com or @dynaproequipment.com.');
                 setUser(null);
+                setRole(null);
             } else {
-                setUser(user);
-                await startSession(user.email);
+                setUser(loggedInUser);
+                await startSession(loggedInUser.email);
+                try {
+                    const resolvedRole = await loadOrSeedRole(loggedInUser);
+                    setRole(resolvedRole);
+                } catch (err) {
+                    console.error('Error loading role:', err);
+                    setRole(defaultRoleFor(loggedInUser.email));
+                }
             }
         } catch (err: any) {
             console.error('Login error:', err);
@@ -114,6 +165,7 @@ export const useAuth = () => {
             await endSession();
             await signOut(auth);
             setUser(null);
+            setRole(null);
         } catch (err: any) {
             console.error('Logout error:', err);
             setError(err.message || 'Failed to sign out');
@@ -122,5 +174,5 @@ export const useAuth = () => {
         }
     };
 
-    return { user, loading, error, loginWithGoogle, logout };
+    return { user, role, loading, error, loginWithGoogle, logout };
 };

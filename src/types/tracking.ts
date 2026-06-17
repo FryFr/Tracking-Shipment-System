@@ -73,5 +73,19 @@ export interface TrackingData {
     carrier_info?: CarrierInfo;
     shipment_grouping?: ShipmentGrouping;
     logistics_eta?: LogisticsETA;
-    data_source?: 'api' | 'email';
+    data_source?: 'api' | 'email' | 'manual';
 }
+
+export type UserRole = 'logistics' | 'sales' | 'cas' | 'admin';
+
+export interface AppUserProfile {
+    email: string;
+    displayName?: string | null;
+    role: UserRole;
+}
+
+export const canEditLogistics = (role: UserRole): boolean =>
+    role === 'logistics' || role === 'admin';
+
+export const canSeeAdjustedEta = (role: UserRole, reviewed: boolean | undefined): boolean =>
+    role === 'logistics' || role === 'admin' || reviewed === true;
