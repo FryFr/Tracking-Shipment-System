@@ -37,6 +37,11 @@ service cloud.firestore {
 
       // Delete: admin only
       allow delete: if isAdmin();
+
+      // Historial de búsquedas — cada usuario solo el suyo
+      match /searches/{searchId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // Usage sessions — users create/update their own
@@ -68,6 +73,13 @@ service cloud.firestore {
 
     // Tracking metadata — any Dynapro user can read; only logistics/admin can write
     match /tracking_metadata/{trackingNumber} {
+      allow read: if request.auth != null;
+      allow write: if isLogisticsOrAdmin();
+    }
+
+    // Tracking docs (email-first store, fed by n8n service account which bypasses
+    // these rules). Clients: any Dynapro user reads; only logistics/admin write.
+    match /trackings/{trackingNumber} {
       allow read: if request.auth != null;
       allow write: if isLogisticsOrAdmin();
     }

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { TrackingInput } from '../components/TrackingInput';
 import { TrackingResult } from '../components/TrackingResult';
 import { LogisticsETAForm } from '../components/LogisticsETAForm';
@@ -8,8 +9,9 @@ import { ManualShipmentForm } from '../components/ManualShipmentForm';
 import { useTracking } from '../hooks/useTracking';
 import { useAuth } from '../hooks/useAuth';
 import { fetchETA, saveETA } from '../hooks/useLogisticsETA';
-import { fetchOrderRefs, saveOrderLink } from '../hooks/useOrderTrackings';
+import { fetchOrderRefs, saveOrderLink, isOrderReference } from '../hooks/useOrderTrackings';
 import { fetchSiblingTrackingNumbers, requestRefresh, fetchTrackingDoc, saveManualShipment } from '../hooks/useTrackingStore';
+import { recordSearch } from '../hooks/useSearchHistory';
 import { canEditLogistics } from '../types/tracking';
 import { Truck, ChevronLeft, ChevronRight, Ship } from 'lucide-react';
 import type { TrackingData } from '../types/tracking';
@@ -24,6 +26,8 @@ export const SearchView = () => {
   const [editingOrderIndex, setEditingOrderIndex] = useState<number | null>(null);
   const [orderSearchRef, setOrderSearchRef] = useState<string | null>(null);
   const [showManualForm, setShowManualForm] = useState(false);
+  const lastQuery = useRef<{ query: string; type: 'tracking' | 'order' } | null>(null);
+  const [searchParams] = useSearchParams();
 
   // Enrich con logistics ETA + order refs + grouping desde Firestore
   useEffect(() => {
@@ -85,9 +89,18 @@ export const SearchView = () => {
     }
   }, [error]);
 
+  // Registrar la búsqueda en el historial cuando llegan resultados
+  useEffect(() => {
+    if (rawData && lastQuery.current && user) {
+      recordSearch(user.uid, { ...lastQuery.current, result_count: rawData.length });
+      lastQuery.current = null;
+    }
+  }, [rawData, user]);
+
   const data = enrichedData ?? rawData;
 
   const handleSearch = async (trackingNumber: string) => {
+    lastQuery.current = { query: trackingNumber, type: 'tracking' };
     setOrderSearchRef(null);
     await trackShipment(trackingNumber);
     setShowResult(true);
@@ -95,11 +108,21 @@ export const SearchView = () => {
   };
 
   const handleSearchByOrder = async (orderRef: string) => {
+    lastQuery.current = { query: orderRef.toUpperCase(), type: 'order' };
     setOrderSearchRef(orderRef.toUpperCase());
     await trackByOrder(orderRef);
     setShowResult(true);
     setActiveIndex(0);
   };
+
+  // Repetir búsqueda desde ?q (ej. desde el Historial)
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (!q) return;
+    if (isOrderReference(q)) handleSearchByOrder(q);
+    else handleSearch(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const handleRefresh = async (index: number) => {
     const current = enrichedData ?? rawData;
