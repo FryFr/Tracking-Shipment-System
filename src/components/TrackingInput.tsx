@@ -3,13 +3,33 @@ import { useState } from 'react';
 import { isOrderReference } from '../hooks/useOrderTrackings';
 
 interface Props {
-    onSearch: (trackingNumber: string) => void;
+    onSearch: (trackingNumber: string, courier?: string) => void;
     onSearchByOrder?: (orderRef: string) => void;
     loading: boolean;
 }
 
+// value = slug que reconoce el carrierOf de n8n (usa .includes)
+const COURIERS: { label: string; value: string }[] = [
+    { label: 'Auto-detectar courier', value: '' },
+    { label: 'Purolator', value: 'purolator' },
+    { label: 'Canada Post', value: 'canada post' },
+    { label: 'FedEx', value: 'fedex' },
+    { label: 'UPS', value: 'ups' },
+    { label: 'DHL', value: 'dhl' },
+    { label: 'Estes', value: 'estes' },
+    { label: 'TForce / UPS Freight', value: 'tforce' },
+    { label: 'Day & Ross', value: 'day ross' },
+    { label: 'DSV', value: 'dsv' },
+    { label: 'Dicom / GLS', value: 'dicom' },
+    { label: 'Old Dominion', value: 'old dominion' },
+    { label: 'SAIA', value: 'saia' },
+    { label: 'XPO', value: 'xpo' },
+    { label: 'Purolator Freight', value: 'purolator freight' },
+];
+
 export const TrackingInput = ({ onSearch, onSearchByOrder, loading }: Props) => {
     const [value, setValue] = useState('');
+    const [courier, setCourier] = useState('');
 
     const isOrder = value.trim() ? isOrderReference(value.trim()) : false;
 
@@ -17,11 +37,10 @@ export const TrackingInput = ({ onSearch, onSearchByOrder, loading }: Props) => 
         e.preventDefault();
         const trimmed = value.trim();
         if (!trimmed) return;
-
         if (isOrder && onSearchByOrder) {
             onSearchByOrder(trimmed);
         } else {
-            onSearch(trimmed);
+            onSearch(trimmed, courier || undefined);
         }
     };
 
@@ -48,15 +67,10 @@ export const TrackingInput = ({ onSearch, onSearchByOrder, loading }: Props) => 
                     type="text"
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
-                    placeholder="e.g. 3543264550 or SO17558"
+                    placeholder="e.g. 335768407058 or SO17558"
                     className="block w-full pl-14 pr-36 py-5 bg-white/95 backdrop-blur-md border border-white/20 focus:border-primary/50 rounded-2xl text-lg shadow-2xl focus:shadow-primary/20 focus:outline-none transition-all duration-300 placeholder:text-gray-400 text-gray-900"
                     disabled={loading}
                 />
-                {isOrder && (
-                    <div className="absolute top-full left-0 mt-2 px-3 py-1.5 bg-amber-500/20 border border-amber-500/30 rounded-lg text-amber-400 text-xs font-medium">
-                        Searching by order reference — will find all linked trackings
-                    </div>
-                )}
                 <button
                     type="submit"
                     disabled={loading || !value.trim()}
@@ -72,6 +86,29 @@ export const TrackingInput = ({ onSearch, onSearchByOrder, loading }: Props) => 
                     )}
                 </button>
             </form>
+
+            {/* Selector de courier (solo al buscar por número; ayuda cuando 17track no auto-detecta) */}
+            {!isOrder && (
+                <div className="mt-3 flex items-center justify-center gap-2 text-sm">
+                    <span className="text-white/50">Courier:</span>
+                    <select
+                        value={courier}
+                        onChange={(e) => setCourier(e.target.value)}
+                        disabled={loading}
+                        className="bg-white/10 border border-white/15 rounded-lg px-3 py-1.5 text-white/90 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    >
+                        {COURIERS.map((c) => (
+                            <option key={c.value} value={c.value} className="text-gray-900">{c.label}</option>
+                        ))}
+                    </select>
+                    <span className="text-white/35 text-xs hidden sm:inline">elegilo si no aparece solo</span>
+                </div>
+            )}
+            {isOrder && (
+                <div className="mt-3 text-center px-3 py-1.5 bg-amber-500/20 border border-amber-500/30 rounded-lg text-amber-400 text-xs font-medium inline-block">
+                    Searching by order reference — will find all linked trackings
+                </div>
+            )}
         </div>
     );
 };

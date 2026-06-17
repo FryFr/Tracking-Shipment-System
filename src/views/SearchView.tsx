@@ -99,10 +99,10 @@ export const SearchView = () => {
 
   const data = enrichedData ?? rawData;
 
-  const handleSearch = async (trackingNumber: string) => {
+  const handleSearch = async (trackingNumber: string, courier?: string) => {
     lastQuery.current = { query: trackingNumber, type: 'tracking' };
     setOrderSearchRef(null);
-    await trackShipment(trackingNumber);
+    await trackShipment(trackingNumber, courier);
     setShowResult(true);
     setActiveIndex(0);
   };

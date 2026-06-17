@@ -15,8 +15,9 @@ export const useTracking = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    /** Buscar por uno o varios números de tracking (separados por coma). */
-    const trackShipment = async (trackingInput: string) => {
+    /** Buscar por uno o varios números de tracking (separados por coma). courier opcional
+     * (slug) para el lookup on-demand cuando 17track no auto-detecta. */
+    const trackShipment = async (trackingInput: string, courier?: string) => {
         setLoading(true);
         setError(null);
         setData(null);
@@ -32,7 +33,7 @@ export const useTracking = () => {
                     // Si no está en el store (o no tiene data real), pedir lookup on-demand
                     // a 17track (auto-detecta el courier), esperar y reintentar.
                     if (!hasRealData(doc)) {
-                        await requestRefresh(tn, '').catch(() => {});
+                        await requestRefresh(tn, courier ?? '').catch(() => {});
                         // 17track registra y trae data async; reintentamos unas veces.
                         for (let i = 0; i < 3 && !hasRealData(doc); i++) {
                             await new Promise((r) => setTimeout(r, 5000));
