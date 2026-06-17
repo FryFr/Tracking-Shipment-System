@@ -6,9 +6,15 @@ import { fetchTrackingDoc, queryTrackingsByOrder, placeholderTracking, requestRe
 // está, dispara un lookup on-demand a 17track (auto-detecta el courier), espera
 // y reintenta — así se puede buscar cualquier tracking, no solo los de correos.
 
-/** ¿El doc trae data real, o es un placeholder sin estado? */
-const hasRealData = (t: TrackingData | null): boolean =>
-    !!t && t.data_source !== undefined && t.status_detail !== 'No tracking data yet';
+/** ¿El doc trae data real, o es un placeholder/stub/NotFound que conviene re-consultar? */
+const hasRealData = (t: TrackingData | null): boolean => {
+    if (!t || t.data_source === undefined) return false;
+    const sd = (t.status_detail || '').toLowerCase();
+    if (sd === '' || sd === 'no tracking data yet' || sd.includes('registrado')) return false;
+    if (sd === 'notfound' || sd.includes('not found') || sd === 'no tracking data found') return false;
+    if ((t.status || '').toLowerCase() === 'notfound') return false;
+    return true;
+};
 
 export const useTracking = () => {
     const [data, setData] = useState<TrackingData[] | null>(null);
