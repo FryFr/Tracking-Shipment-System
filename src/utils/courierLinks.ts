@@ -3,6 +3,22 @@
 // el último estado conocido (de los correos) + este botón para ver la posición
 // en vivo de un click en la web del courier. Cero dependencias, cero costo.
 
+/**
+ * Adivina el courier por el FORMATO del número (17track no auto-detecta Purolator/freight).
+ * Devuelve un slug que reconoce el carrierOf de n8n, o '' si no hay pista clara.
+ */
+export const guessCourier = (n: string): string => {
+    const t = (n || '').trim().toUpperCase();
+    if (!t) return '';
+    if (/^1Z[0-9A-Z]{16}$/.test(t)) return 'ups';
+    if (/^33\d{10}$/.test(t)) return 'purolator';        // Purolator PIN (12 díg., empieza 33)
+    if (/^[A-Z]{2}\d{9}CA$/.test(t)) return 'canada post';
+    if (/^\d{16}$/.test(t)) return 'canada post';
+    if (/^\d{10}$/.test(t)) return 'dhl';
+    if (/^\d{12}$/.test(t)) return 'fedex';              // 12 díg. genérico → FedEx
+    return '';
+};
+
 /** Normaliza el slug del courier (TrackingMore-style) a una clave estable. */
 const normalizeSlug = (raw: string): string =>
     String(raw ?? '')

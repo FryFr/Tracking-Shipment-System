@@ -114,6 +114,29 @@ export const requestRefresh = async (trackingNumber: string, courierSlug: string
     } catch { /* el re-read de Firestore corre igual */ }
 };
 
+/**
+ * Escribe un stub mínimo (con courier) cuando un número buscado se registró en 17track
+ * pero la data aún no llegó (async). Así el Sync horario lo levanta y lo completa solo.
+ * Requiere rol logística/admin (Firestore rules); si falla, no rompe la búsqueda.
+ */
+export const saveStubTracking = async (trackingNumber: string, courierSlug: string): Promise<void> => {
+    const id = trackingNumber.trim();
+    if (!id || !courierSlug) return;
+    const now = new Date().toISOString();
+    try {
+        await setDoc(doc(db, COLLECTION, id), {
+            tracking_number: id,
+            courier_slug: courierSlug,
+            status: 'pending',
+            status_detail: 'Registrado — actualizando con el courier',
+            source: 'pending',
+            registered: false,
+            updated_at: now,
+            last_update: now,
+        }, { merge: true });
+    } catch { /* best-effort */ }
+};
+
 /** Lee un tracking por número. null si no existe en el store. */
 export const fetchTrackingDoc = async (tn: string): Promise<TrackingData | null> => {
     const snap = await getDoc(doc(db, COLLECTION, tn));

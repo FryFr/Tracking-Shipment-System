@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { TrackingData } from '../types/tracking';
-import { fetchTrackingDoc, queryTrackingsByOrder, placeholderTracking, requestRefresh } from './useTrackingStore';
+import { fetchTrackingDoc, queryTrackingsByOrder, placeholderTracking, requestRefresh, saveStubTracking } from './useTrackingStore';
 
 // Lee el store de Firestore (alimentado por correos + 17track). Si un número no
 // está, dispara un lookup on-demand a 17track (auto-detecta el courier), espera
@@ -40,6 +40,9 @@ export const useTracking = () => {
                             const retry = await fetchTrackingDoc(tn).catch(() => null);
                             if (hasRealData(retry)) doc = retry;
                         }
+                        // Sigue sin data (17track aún no la trajo) pero tenemos courier:
+                        // dejamos un stub para que el Sync horario lo complete solo.
+                        if (!hasRealData(doc) && courier) await saveStubTracking(tn, courier);
                     }
                     return doc ?? placeholderTracking(tn);
                 }),

@@ -1,6 +1,7 @@
 import { Search, Package } from 'lucide-react';
 import { useState } from 'react';
 import { isOrderReference } from '../hooks/useOrderTrackings';
+import { guessCourier } from '../utils/courierLinks';
 
 interface Props {
     onSearch: (trackingNumber: string, courier?: string) => void;
@@ -30,8 +31,15 @@ const COURIERS: { label: string; value: string }[] = [
 export const TrackingInput = ({ onSearch, onSearchByOrder, loading }: Props) => {
     const [value, setValue] = useState('');
     const [courier, setCourier] = useState('');
+    const [courierTouched, setCourierTouched] = useState(false);
 
     const isOrder = value.trim() ? isOrderReference(value.trim()) : false;
+
+    // Mientras el usuario no elija manualmente, pre-seleccionamos el courier por formato
+    const handleValueChange = (next: string) => {
+        setValue(next);
+        if (!courierTouched) setCourier(guessCourier(next));
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -66,7 +74,7 @@ export const TrackingInput = ({ onSearch, onSearchByOrder, loading }: Props) => 
                 <input
                     type="text"
                     value={value}
-                    onChange={(e) => setValue(e.target.value)}
+                    onChange={(e) => handleValueChange(e.target.value)}
                     placeholder="e.g. 335768407058 or SO17558"
                     className="block w-full pl-14 pr-36 py-5 bg-white/95 backdrop-blur-md border border-white/20 focus:border-primary/50 rounded-2xl text-lg shadow-2xl focus:shadow-primary/20 focus:outline-none transition-all duration-300 placeholder:text-gray-400 text-gray-900"
                     disabled={loading}
@@ -93,7 +101,7 @@ export const TrackingInput = ({ onSearch, onSearchByOrder, loading }: Props) => 
                     <span className="text-white/50">Courier:</span>
                     <select
                         value={courier}
-                        onChange={(e) => setCourier(e.target.value)}
+                        onChange={(e) => { setCourier(e.target.value); setCourierTouched(true); }}
                         disabled={loading}
                         className="bg-white/10 border border-white/15 rounded-lg px-3 py-1.5 text-white/90 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                     >
