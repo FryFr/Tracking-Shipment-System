@@ -32,3 +32,13 @@ ui-debug.log*
 # MCP config (contains auth tokens for HubSpot/n8n/Odoo)
 .mcp.json
 
+# Superpowers brainstorm companion (mockups, local server state)
+.superpowers/
+
+# Firebase service account / admin keys — NUNCA commitear (acceso admin total)
+*firebase-adminsdk*.json
+*serviceaccount*.json
+.env
+.env.*
+!.env.example
+

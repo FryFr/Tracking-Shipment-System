@@ -73,7 +73,7 @@ export interface TrackingData {
     carrier_info?: CarrierInfo;
     shipment_grouping?: ShipmentGrouping;
     logistics_eta?: LogisticsETA;
-    data_source?: 'api' | 'email';
+    data_source?: 'api' | 'email' | 'manual';
 }
 
 export type UserRole = 'logistics' | 'sales' | 'cas' | 'admin';

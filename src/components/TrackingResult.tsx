@@ -1,7 +1,9 @@
 import { format, isValid, addWeeks } from 'date-fns';
-import { ArrowLeft, Box, Calendar, MapPin, Truck, Shield, ShieldCheck, Pencil, Link2 } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Box, Calendar, MapPin, Truck, Shield, ShieldCheck, Pencil, Link2, ExternalLink, RefreshCw } from 'lucide-react';
 import type { TrackingData, UserRole } from '../types/tracking';
 import { canEditLogistics, canSeeAdjustedEta } from '../types/tracking';
+import { getCourierLink } from '../utils/courierLinks';
 import { Timeline } from './Timeline';
 
 interface Props {
@@ -11,6 +13,7 @@ interface Props {
     showBackButton?: boolean;
     onEditETA?: () => void;
     onLinkOrder?: () => void;
+    onRefresh?: () => Promise<void> | void;
 }
 
 const formatEta = (dateStr: string | undefined): string => {
@@ -34,10 +37,19 @@ const getCardGlowStyles = (status: string) => {
     return 'shadow-[0_0_50px_-12px_rgba(37,99,235,0.7)] ring-2 ring-blue-500/50';
 };
 
-export const TrackingResult = ({ data, role, onBack, showBackButton = true, onEditETA, onLinkOrder }: Props) => {
+export const TrackingResult = ({ data, role, onBack, showBackButton = true, onEditETA, onLinkOrder, onRefresh }: Props) => {
+    const [refreshing, setRefreshing] = useState(false);
+    const doRefresh = async () => {
+        if (!onRefresh || refreshing) return;
+        setRefreshing(true);
+        try { await onRefresh(); } finally { setRefreshing(false); }
+    };
     const statusColor = getStatusColor(data.status_detail);
     const carrierName = data.carrier_info?.name ?? data.courier_slug;
     const { order_references: refs, shipment_grouping: grouping, logistics_eta: eta } = data;
+    const courierLink = data.data_source === 'manual'
+        ? null
+        : getCourierLink(data.carrier_info?.slug ?? data.courier_slug, data.tracking_number);
 
     const canEdit = role ? canEditLogistics(role) : false;
     const showAdjustedEta = role ? canSeeAdjustedEta(role, eta?.reviewed) : false;
@@ -82,6 +94,17 @@ export const TrackingResult = ({ data, role, onBack, showBackButton = true, onEd
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
+                            {onRefresh && data.data_source !== 'manual' && (
+                                <button
+                                    onClick={doRefresh}
+                                    disabled={refreshing}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-semibold text-white/80 hover:text-white transition-colors disabled:opacity-60"
+                                    title="Traer el último estado del courier ahora"
+                                >
+                                    <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                                    {refreshing ? 'Updating…' : 'Update now'}
+                                </button>
+                            )}
                             {eta != null && isLogisticsView && (
                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                                     eta.reviewed
@@ -142,12 +165,23 @@ export const TrackingResult = ({ data, role, onBack, showBackButton = true, onEd
                                 {data.data_source === 'email' && (
                                     <p className="text-amber-400 text-xs mt-1">Data from shipping notification</p>
                                 )}
+                                {data.data_source === 'manual' && (
+                                    <p className="text-cyan-400 text-xs mt-1">Maritime — manual / forwarder</p>
+                                )}
                                 {data.carrier_info?.phone && (
                                     <p className="text-gray-400 text-xs">{data.carrier_info.phone}</p>
                                 )}
-                                {data.carrier_info?.website && (
-                                    <a href={data.carrier_info.website} target="_blank" rel="noopener noreferrer"
-                                       className="text-blue-400 text-xs hover:underline">{data.carrier_info.website}</a>
+                                {courierLink && (
+                                    <a
+                                        href={courierLink.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-semibold text-white transition-colors"
+                                        title={courierLink.official ? `Track on ${carrierName}` : 'Track via ParcelsApp (auto-detect)'}
+                                    >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                        {courierLink.official ? `Track on ${carrierName}` : 'Track live'}
+                                    </a>
                                 )}
                             </div>
                         </div>
