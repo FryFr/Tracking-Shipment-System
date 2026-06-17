@@ -11,6 +11,7 @@ export const guessCourier = (n: string): string => {
     const t = (n || '').trim().toUpperCase();
     if (!t) return '';
     if (/^1Z[0-9A-Z]{16}$/.test(t)) return 'ups';
+    if (/^N\d{6,10}$/.test(t)) return 'gls canada';      // GLS Canada (ej. N70316470)
     if (/^33\d{10}$/.test(t)) return 'purolator';        // Purolator PIN (12 díg., empieza 33)
     if (/^[A-Z]{2}\d{9}CA$/.test(t)) return 'canada post';
     if (/^\d{16}$/.test(t)) return 'canada post';
