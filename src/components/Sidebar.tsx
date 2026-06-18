@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { Search, LayoutDashboard, History, LogOut } from 'lucide-react';
+import { Search, LayoutDashboard, History, Warehouse, LogOut } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import logo from '../assets/logo-vector.png';
 
 const links = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/incoming', icon: Warehouse, label: 'Stock' },
   { to: '/search', icon: Search, label: 'Buscar' },
   { to: '/history', icon: History, label: 'Historial' },
 ];
