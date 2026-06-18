@@ -1,50 +1,47 @@
 # ============================================================================
 # Odoo Server Action — "Solicitar intercompany / Request intercompany"
-# Modelo: sale.order   ·   Tipo: Ejecutar código Python
+# Modelo: PURCHASE.ORDER   ·   Tipo: Ejecutar código Python
 #
-# Yannett/ventas lo dispara desde una SOMX (orden de México) cuando la mercadería
-# tiene que venir de Canadá. El click NO crea nada todavía: marca la SO para que
-# n8n mande el email de aprobación (a Yannett + Emilka). Recién al APROBAR por
-# email se crean la OC (México compra a Canadá 3716) y la SO-CA (Canadá vende a
-# México 2252). Aprobación ANTES de crear porque es irreversible.
+# CORREGIDO: va en COMPRAS, no en ventas. El flujo real (Yannett):
+#   1. Ella crea la OC en México (purchase.order, MX compra a Canadá) → ORIGEN.
+#   2. El botón (este) marca la OC; al APROBAR por email, n8n crea en Canadá:
+#        - PO Canadá (purchase.order, company 1): mismos ítems, SIN proveedor
+#          (queda en draft; Yannett pone el proveedor real).
+#        - SO Canadá (sale.order, company 1): cliente = Dynapro México (2252),
+#          mismos ítems.
+#   Aprobación por email ANTES de crear (irreversible).
 #
-# Requiere campos custom en sale.order (crear en Studio):
-#   - x_intercompany_request (Char/Text)  → estado del flujo
-#   - x_intercompany_done    (Boolean)    → idempotencia (ya creado)
-#
-# El puente a la creación lo hace n8n (polling de x_intercompany_request).
-# `record` = la sale.order desde la que se ejecuta.
+# Campos custom en purchase.order (creados por API):
+#   x_intercompany_request (Char) · x_intercompany_done (Boolean)
+# `record` = la purchase.order (OC México) desde la que se ejecuta.
 # ============================================================================
 
-so = record
+po = record
 
-# Guardas: no re-disparar si ya está en curso o ya se creó
-if so.x_intercompany_done:
-    so.message_post(
-        body=u'ℹ️ Intercompany ya creado para esta orden / already created. No action.',
+if po.x_intercompany_done:
+    po.message_post(
+        body=u'ℹ️ Intercompany ya creado para esta OC / already created. No action.',
         message_type='comment', subtype_xmlid='mail.mt_comment')
-elif so.x_intercompany_request in ('requested', 'sent', 'approved'):
-    so.message_post(
+elif po.x_intercompany_request in ('requested', 'sent', 'approved'):
+    po.message_post(
         body=u'ℹ️ Intercompany ya solicitado (estado: %s) / already requested. '
-             u'Esperando aprobación por email.' % so.x_intercompany_request,
+             u'Esperando aprobación por email.' % po.x_intercompany_request,
         message_type='comment', subtype_xmlid='mail.mt_comment')
 else:
-    lines = so.order_line.filtered(lambda l: l.product_id and l.product_uom_qty > 0)
+    lines = po.order_line.filtered(lambda l: l.product_id and l.product_qty > 0)
     if not lines:
-        so.message_post(
-            body=u'⚠️ La orden no tiene líneas de producto / no product lines. '
-                 u'No se puede solicitar intercompany.',
+        po.message_post(
+            body=u'⚠️ La OC no tiene líneas de producto / no product lines.',
             message_type='comment', subtype_xmlid='mail.mt_comment')
     else:
         detail = u'<br/>'.join(
             u'&bull; %s &times; %s @ %s'
-            % (l.product_id.display_name, l.product_uom_qty, l.price_unit)
+            % (l.product_id.display_name, l.product_qty, l.price_unit)
             for l in lines)
-        # Marca para que n8n mande el email de aprobación
-        so.write({'x_intercompany_request': 'requested'})
-        so.message_post(
+        po.write({'x_intercompany_request': 'requested'})
+        po.message_post(
             body=u'\U0001F501 <b>Intercompany solicitado / requested</b><br/>'
                  u'Se pedirá aprobación por email a Logística (Yannett + Emilka).<br/>'
-                 u'Al aprobar se crearán: OC México→Canadá (3716) y SO Canadá→México (2252) '
-                 u'con estas líneas:<br/>' + detail,
+                 u'Al aprobar se crearán en Canadá: <b>PO</b> (mismos ítems, sin proveedor, draft) '
+                 u'y <b>SO</b> (cliente Dynapro México) con estas líneas:<br/>' + detail,
             message_type='comment', subtype_xmlid='mail.mt_comment')
