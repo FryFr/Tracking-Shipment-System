@@ -31,14 +31,16 @@ const up = (s?: string | null) => (s || '').toUpperCase();
 
 export const trackingToRow = (t: TrackingData, i: number): UnifiedRow => {
     const r = t.order_references;
+    // Orden sin guía aún (placeholder guardado por WF2 con clave ORDER-<SO>)
+    const isPendingOrder = (t.tracking_number || '').startsWith('ORDER-');
     return {
         id: `out:${t.tracking_number}:${i}`,
         stage: 'outbound',
         orderKey: up(r?.sales_order || r?.purchase_order || r?.order_confirmation) || '—',
-        itemLabel: t.tracking_number,
+        itemLabel: isPendingOrder ? 'Orden recibida (sin guía)' : t.tracking_number,
         subLabel: '',
         carrier: t.carrier_info?.name || t.courier_slug || '—',
-        statusLabel: statusBucketLabel(t.status),
+        statusLabel: t.status === 'pending' ? 'Pendiente de envío' : statusBucketLabel(t.status),
         chipClasses: statusChipClasses(t.status),
         delayed: false,
         eta: realEta(t) || t.eta || null,
