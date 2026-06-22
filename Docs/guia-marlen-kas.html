@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Guía completa — KAS Workcenter</title></head>
+<body style="margin:0;background:#f4f5f7;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#2b2b2b">
+<div style="max-width:720px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.08)">
+
+  <!-- Header -->
+  <div style="background:#005687;padding:26px 30px;color:#fff">
+    <div style="font-size:13px;opacity:.85;letter-spacing:.5px">DYNAPRO · KAS WORKCENTER</div>
+    <div style="font-size:23px;font-weight:bold;margin-top:4px">🚀 Tu cotizador ahora vive en Odoo</div>
+    <div style="font-size:14px;opacity:.9;margin-top:6px">Guía completa + tutorial paso a paso · para el equipo KAS</div>
+  </div>
+
+  <div style="padding:24px 30px;font-size:14px;line-height:1.6">
+    <p>Hola <b>Marlen</b> y equipo KAS 👋</p>
+    <p>Ya está lista la automatización que armamos juntos. La idea es simple: <b>cotizar más rápido, con todo a la vista, sin saltar entre Gmail, HubSpot y Odoo</b>. Todo se maneja con <b>2 botones</b> dentro de la cotización en Odoo. Te lo explico de punta a punta. 👇</p>
+
+    <!-- Flujo -->
+    <div style="background:#f7f9fb;border:1px solid #e6e8eb;border-radius:8px;padding:16px 18px;margin:18px 0">
+      <div style="font-size:15px;font-weight:bold;color:#005687;margin-bottom:10px">🗺️ El flujo en 30 segundos</div>
+      <pre style="margin:0;font-family:Consolas,Menlo,monospace;font-size:12.5px;line-height:1.5;color:#333;white-space:pre-wrap">  Cotización en Odoo
+        │
+        ▼
+  ① Botón "Consultar disponibilidad y precio"
+        →  ves: precio + historial, stock por site, POs en camino
+        │
+        ├─ ¿Tenés precio y stock?  →  cotizás y listo ✅
+        │
+        └─ ¿Falta precio o stock?  →  ② Botón "Escalar a Supply Chain"
+                                          →  📧 correo a SC + ⏱️ arranca su reloj
+                                          │
+                                          ▼
+                                   SC resuelve  →  botón "SC: Marcar resuelto"
+                                          →  vuelve a tu cancha, se corta el reloj</pre>
+    </div>
+
+    <!-- ===== TUTORIAL 1 ===== -->
+    <div style="font-size:18px;font-weight:bold;color:#005687;margin:24px 0 6px;border-bottom:2px solid #005687;padding-bottom:6px">① Consultar disponibilidad y precio</div>
+    <p style="margin:10px 0"><b>¿Para qué sirve?</b> Antes de poner un precio, te muestra qué le cobramos antes a ese cliente (y a todos), cuánto stock hay en cada país, y qué viene en camino. Así cotizás con datos, no a ojo.</p>
+
+    <div style="font-weight:bold;margin:14px 0 6px">Paso a paso:</div>
+    <ol style="margin:0;padding-left:22px">
+      <li style="margin-bottom:6px">Abrí la <b>cotización</b> en Odoo (Ventas → tu cotización).</li>
+      <li style="margin-bottom:6px">Arriba, hacé clic en el menú <b>“Acción”</b> (⚙️).
+        <div style="background:#fff;border:1px dashed #c9ced4;border-radius:6px;padding:14px;margin:6px 0;color:#9aa1a8;font-size:12px;text-align:center">📷 [Captura: menú “Acción” en la cotización]</div></li>
+      <li style="margin-bottom:6px">Elegí <b>“Consultar disponibilidad y precio (KAS)”</b>.</li>
+      <li style="margin-bottom:6px">En segundos aparece una <b>nota en el chatter</b> (abajo del todo) y un <b>To-Do</b> en tus actividades.</li>
+    </ol>
+
+    <div style="font-weight:bold;margin:16px 0 6px">Cómo leer la nota:</div>
+    <div style="background:#f7f9fb;border:1px solid #e6e8eb;border-radius:6px;padding:14px 16px;font-size:13px;color:#333">
+      <div style="font-weight:bold">📊 KAS Workcenter — <span style="background:#fff3cd;padding:0 4px">Cotización</span> SO19499</div>
+      <div style="margin-top:8px"><b>Repair Kit Goulds 10SV</b> — 3 órdenes</div>
+      <div>&nbsp;&nbsp;Ahora: <b>$3,074.00</b></div>
+      <div>&nbsp;&nbsp;Este cliente: <span style="background:#d4edda;padding:0 4px">$2,536.52 (SO17862)</span></div>
+      <div>&nbsp;&nbsp;Historial (todos): $2,536.52 · Tantalum · SO17862 · 2025-09-17</div>
+      <div>&nbsp;&nbsp;<span style="background:#e7f1ff;padding:0 4px">Stock:</span> <span style="color:#c0392b">sin stock</span> | En camino: PO09008·CA ETA 2026-07-23</div>
+      <div style="margin-top:8px;border-top:1px dashed #d6dbe0;padding-top:8px"><b>Stock por site:</b> CA 0 · MX 0 · PA 0 · DR 0 | <b>POs abiertas:</b> 1</div>
+    </div>
+    <ul style="margin:10px 0 0;padding-left:20px">
+      <li><b>🏷️ Cotización / Sales Order</b> (en el título): te dice si la referencia ya es venta confirmada o todavía cotización.</li>
+      <li><b>Ahora</b>: el precio que tenés puesto hoy en la línea.</li>
+      <li><b>Este cliente</b>: el último precio que le cobramos a <b>ESE</b> cliente (con su SO).</li>
+      <li><b>Historial (todos)</b>: precios a cualquier cliente, con SO y fecha — para que compares.</li>
+      <li><b>📦 Stock por site</b>: existencias en <b>CA · MX · PA · DR</b>. Si hay en otro país, lo ves acá.</li>
+      <li><b>🚚 En camino</b>: POs de compra abiertas, con <b>número de PO</b>, país y <b>fecha estimada de llegada</b>.</li>
+      <li><b>⚠️ Avisos</b>: “Sin precio anterior” o “Sin stock” cuando corresponde.</li>
+    </ul>
+
+    <div style="background:#fff8e6;border:1px solid #f3e2a9;border-radius:8px;padding:14px 16px;margin:14px 0">
+      <b>¿Qué hago con eso?</b>
+      <ul style="margin:8px 0 0;padding-left:20px">
+        <li>Hay precio anterior y stock → <b>cotizás con confianza</b>. ✅</li>
+        <li>Hay stock en otro país (MX/PA/DR) → coordinás desde ahí.</li>
+        <li>Falta precio anterior <b>o</b> no hay stock en ningún lado → pasás al <b>Botón 2</b>. 👇</li>
+      </ul>
+      <div style="margin-top:6px;font-size:13px;color:#666">💡 Podés tocar el botón <b>las veces que quieras</b>. No crea nada automático — solo te muestra información.</div>
+    </div>
+
+    <!-- ===== TUTORIAL 2 ===== -->
+    <div style="font-size:18px;font-weight:bold;color:#005687;margin:26px 0 6px;border-bottom:2px solid #005687;padding-bottom:6px">② Escalar a Supply Chain</div>
+    <p style="margin:10px 0"><b>¿Cuándo?</b> Cuando un producto <b>no tiene stock en ningún país</b> y necesitás que Supply Chain te dé precio y/o tiempo de entrega.</p>
+
+    <div style="font-weight:bold;margin:14px 0 6px">Paso a paso:</div>
+    <ol style="margin:0;padding-left:22px">
+      <li style="margin-bottom:6px">En la cotización, <b>“Acción” → “Escalar a Supply Chain”</b>.
+        <div style="background:#fff;border:1px dashed #c9ced4;border-radius:6px;padding:14px;margin:6px 0;color:#9aa1a8;font-size:12px;text-align:center">📷 [Captura: opción “Escalar a Supply Chain” en el menú Acción]</div></li>
+      <li style="margin-bottom:6px">Listo. <b>No tenés que escribir ni crear nada más.</b></li>
+    </ol>
+
+    <div style="font-weight:bold;margin:14px 0 6px">¿Qué pasa con ese clic?</div>
+    <ul style="margin:0;padding-left:20px">
+      <li>📧 Se manda <b>automáticamente</b> un correo a <b>Supply Chain</b> (Emilka y Yannett), con <b>copia a vos</b>, con el detalle de las partes a revisar (precio faltante, stock por país, POs en camino).</li>
+      <li>⏱️ El <b>reloj de tu cotización se pausa</b> mientras esperás a SC, y arranca el de ellos. Así se mide cuánto tardan <b>sin que te cuente a vos</b>.</li>
+      <li>📌 Queda una nota en la cotización confirmando que se escaló.</li>
+    </ul>
+
+    <div style="font-weight:bold;margin:16px 0 6px">Esto es lo que recibe Supply Chain:</div>
+    <div style="background:#f7f9fb;border:1px solid #e6e8eb;border-radius:6px;padding:12px 14px;font-size:12.5px;color:#333">
+      <div style="color:#777;font-size:11px">Para: Emilka, Yannett · CC: vos</div>
+      <div style="font-weight:bold;margin:4px 0 8px">[KAS] Solicitud precio/stock — SO19499 — Tantalum Mining</div>
+      <div style="color:#c0392b">⚠️ Faltan precios anteriores (1): Repair Kit Goulds 10SV</div>
+      <table style="border-collapse:collapse;font-size:12px;margin-top:6px;width:100%">
+        <tr style="background:#eef2f6"><td style="border:1px solid #ddd;padding:4px 6px">Producto</td><td style="border:1px solid #ddd;padding:4px 6px">Stock por site</td><td style="border:1px solid #ddd;padding:4px 6px">En camino</td><td style="border:1px solid #ddd;padding:4px 6px">Precio anterior</td></tr>
+        <tr><td style="border:1px solid #ddd;padding:4px 6px">Repair Kit 10SV</td><td style="border:1px solid #ddd;padding:4px 6px;color:#c0392b">sin stock</td><td style="border:1px solid #ddd;padding:4px 6px">PO09008·CA</td><td style="border:1px solid #ddd;padding:4px 6px;color:#c0392b">SIN PRECIO</td></tr>
+      </table>
+    </div>
+
+    <!-- Lado SC -->
+    <div style="border:1px solid #e6e8eb;border-radius:8px;padding:16px 18px;margin:20px 0;background:#fafbfc">
+      <div style="font-size:15px;font-weight:bold;color:#444">🔄 El lado de Supply Chain</div>
+      <p style="margin:8px 0 0">Cuando SC resuelve, hace clic en <b>“SC: Marcar resuelto”</b> en la misma cotización (también desde el menú Acción). Con eso: tu cotización <b>vuelve a tu cancha</b> y se <b>corta el reloj</b> de ellos. Sin cuentas nuevas, sin HubSpot — todo desde Odoo.</p>
+    </div>
+
+    <!-- FAQ -->
+    <div style="font-size:18px;font-weight:bold;color:#005687;margin:26px 0 10px;border-bottom:2px solid #005687;padding-bottom:6px">❓ Preguntas frecuentes</div>
+    <div style="font-size:13.5px">
+      <p style="margin:8px 0"><b>¿Cuántas veces puedo tocar “Consultar disponibilidad y precio”?</b><br>Las que quieras. Solo muestra info, no crea nada.</p>
+      <p style="margin:8px 0"><b>El cliente nunca compró esto, ¿qué hago?</b><br>Vas a ver “Sin precio anterior”. Si además no hay stock, escalá a Supply Chain.</p>
+      <p style="margin:8px 0"><b>Hay stock en México pero no en Canadá. ¿La nota me lo dice?</b><br>Sí. El “Stock por site” te muestra los 4 países por separado.</p>
+      <p style="margin:8px 0"><b>Al escalar, ¿tengo que escribirle a Supply Chain?</b><br>No. El correo se manda solo, con copia a vos, con todo el detalle.</p>
+      <p style="margin:8px 0"><b>¿Cómo sé que se escaló?</b><br>Te llega el correo en copia y queda una nota en la cotización.</p>
+      <p style="margin:8px 0"><b>¿Esto reemplaza a HubSpot?</b><br>Para esto, sí — trabajás todo desde Odoo. Supply Chain ni necesita cuenta de HubSpot.</p>
+    </div>
+
+    <!-- Beneficios -->
+    <div style="background:#eef6ee;border:1px solid #cfe6cf;border-radius:8px;padding:16px 18px;margin:20px 0">
+      <div style="font-size:15px;font-weight:bold;color:#2e7d32">✅ Lo que ganás</div>
+      <ul style="margin:8px 0 0;padding-left:20px">
+        <li>Todo desde <b>Odoo</b>, sin triplicar trabajo.</li>
+        <li><b>Cero</b> tickets fantasma, cero perseguir a nadie por correo.</li>
+        <li>Precio, stock y POs de un vistazo, por los <b>4 países</b>.</li>
+        <li>Métrica real de cuánto tarda Supply Chain en responderte.</li>
+      </ul>
+    </div>
+
+    <p style="margin-top:18px">Cualquier duda me escribís y lo vemos. ¡A cotizar! 🙌</p>
+    <p style="color:#888;font-size:12px;margin-top:16px;border-top:1px solid #eee;padding-top:12px">Automatización KAS · Dynapro · v1</p>
+  </div>
+</div>
+</body></html>

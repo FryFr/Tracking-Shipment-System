@@ -38,6 +38,7 @@ ui-debug.log*
 # Workflow de referencia con credenciales hardcodeadas (rotar + mover a env, luego commitear)
 n8n/WF-sc-escalation.js
 n8n/WF1-consolidate-lookup.js
+n8n/WF2-groq-extraction.js
 
 # Firebase service account / admin keys — NUNCA commitear (acceso admin total)
 *firebase-adminsdk*.json
