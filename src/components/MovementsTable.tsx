@@ -39,8 +39,9 @@ export const MovementsTable = ({ groups, onRowClick }: Props) => {
         <div className="text-sm">
             <div className="hidden md:flex text-white/50 text-xs font-semibold px-4 pb-2 gap-3 border-b border-white/10">
                 <span className="flex-[1.6]">Item</span><span className="flex-[0.9]">Etapa</span>
-                <span className="flex-[1.4]">Carrier / Origen</span><span className="flex-[1.1]">Estado</span>
-                <span className="flex-[0.8]">ETA</span><span className="flex-[1.3]">Ubicación</span>
+                <span className="flex-[1.3]">Carrier / Origen</span><span className="flex-[1.1]">Estado</span>
+                <span className="flex-[0.8]">ETA</span><span className="flex-[1.1]">Ubicación</span>
+                <span className="flex-[0.9]">Actualizado</span>
             </div>
             {groups.map((g) => (
                 <div key={g.key} className="mt-3">
@@ -63,7 +64,7 @@ export const MovementsTable = ({ groups, onRowClick }: Props) => {
                                     {r.subLabel && <span className="block text-white/40 text-[11px] font-sans truncate">{r.subLabel}</span>}
                                 </Field>
                                 <span className="md:flex-[0.9] py-0.5"><StageBadge stage={r.stage} /></span>
-                                <Field label="Carrier" className="md:flex-[1.4] text-white/70 capitalize truncate">{r.carrier}</Field>
+                                <Field label="Carrier" className="md:flex-[1.3] text-white/70 capitalize truncate">{r.carrier}</Field>
                                 <span className="md:flex-[1.1] py-0.5">
                                     <span className="md:hidden text-white/40 text-[10px] uppercase tracking-wide mr-1">Estado:</span>
                                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${r.chipClasses}`}>
@@ -72,7 +73,8 @@ export const MovementsTable = ({ groups, onRowClick }: Props) => {
                                     </span>
                                 </span>
                                 <Field label="ETA" className="md:flex-[0.8] text-white/60">{fdate(r.eta)}</Field>
-                                <Field label="Ubicación" className="md:flex-[1.3] text-white/50 truncate">{r.location || '—'}</Field>
+                                <Field label="Ubicación" className="md:flex-[1.1] text-white/50 truncate">{r.location || '—'}</Field>
+                                <Field label="Actualizado" className="md:flex-[0.9] text-white/40">{fdate(r.updated)}</Field>
                             </>
                         );
                         return clickable ? (

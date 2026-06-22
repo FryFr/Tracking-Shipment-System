@@ -21,6 +21,7 @@ export interface UnifiedRow {
     delayed: boolean;
     eta: string | null;     // ISO/fecha
     location: string;
+    updated: string;        // última actualización (ISO) — solo salientes; entrantes = snapshot
     region: string;
     completed: boolean;     // entregado (saliente) o recibido/cancelado (entrante)
     tracking?: TrackingData; // solo salientes → abre el drawer
@@ -42,6 +43,7 @@ export const trackingToRow = (t: TrackingData, i: number): UnifiedRow => {
         delayed: false,
         eta: realEta(t) || t.eta || null,
         location: t.last_location || '',
+        updated: t.last_update || '',
         region: '',
         completed: statusBucket(t.status) === 'delivered',
         tracking: t,
@@ -62,6 +64,7 @@ export const incomingToRow = (l: IncomingLine, i: number): UnifiedRow => {
         delayed: l.delayed,
         eta: l.due_factory || null,
         location: [l.origin, l.ship_to].filter(Boolean).join(' → '),
+        updated: '',
         region: l.region,
         completed: l.bucket === 'received' || l.bucket === 'cancelled',
     };
